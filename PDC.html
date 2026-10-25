@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROJECT MAYA - PROCAST // BUSINESS TERMINAL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        /* Business Day Mode (High Contrast Solid Black Text) */
+        body.light-mode {
+            background-color: #f1f5f9;
+            color: #000000;
+        }
+        body.light-mode .corporate-panel {
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        body.light-mode .corporate-panel-inner {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+        }
+        body.light-mode input, body.light-mode select {
+            background-color: #ffffff;
+            border-color: #94a3b8;
+            color: #000000;
+            font-weight: 600;
+        }
+        body.light-mode input::placeholder {
+            color: #475569;
+            font-weight: 500;
+        }
+        body.light-mode .text-slate-400, 
+        body.light-mode .text-slate-500, 
+        body.light-mode .text-slate-300 {
+            color: #000000 !important;
+            font-weight: 600;
+        }
+        body.light-mode .text-white {
+            color: #000000 !important;
+            font-weight: 700;
+        }
+        body.light-mode .border-slate-800, 
+        body.light-mode .border-slate-700, 
+        body.light-mode .border-slate-900 {
+            border-color: #94a3b8 !important;
+        }
+        body.light-mode .bg-slate-950, 
+        body.light-mode .bg-slate-900, 
+        body.light-mode .bg-slate-800 {
+            background-color: #ffffff !important;
+        }
+
+        /* Business Night Mode (Corporate Dark) */
+        body.dark-mode {
+            background-color: #0f172a;
+            color: #f1f5f9;
+        }
+        body.dark-mode .corporate-panel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+        body.dark-mode .corporate-panel-inner {
+            background: #0f172a;
+            border: 1px solid #334155;
+        }
+        body.dark-mode input, body.dark-mode select {
+            background-color: #0f172a;
+            border-color: #334155;
+            color: #f8fafc;
+        }
+        body.dark-mode input::placeholder {
+            color: #64748b;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 3px;
+        }
+        body.dark-mode ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        
+        .custom-field-li { 
+            transition: background-color 0.15s ease; 
+        }
+        
+        /* Search highlight style */
+        .search-highlight {
+            background-color: rgba(14, 165, 233, 0.2) !important;
+            border-color: #0284c7 !important;
+        }
+    </style>
+</head>
+<body class="dark-mode min-h-screen relative overflow-x-hidden">
+
+    <div id="app" class="relative p-4 sm:p-8 max-w-7xl mx-auto space-y-6 z-10">
+        
+        <!-- Corporate Header -->
+        <header class="corporate-panel p-6 rounded-xl border-l-4 border-l-blue-600 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <div class="flex items-center gap-3">
+                    <span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight uppercase">
+                        Project Maya - Procast
+                    </h1>
+                </div>
+                <p class="text-xs mt-1 uppercase tracking-wider font-semibold">
+                    Enterprise Data Management Console // Storage: <span id="sync-status" class="text-blue-600 font-bold">SECURE (HYBRID)</span>
+                </p>
+            </div>
+            
+            <!-- Controls & Theme Toggle -->
+            <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                <div class="hidden sm:flex gap-4 text-xs border-l border-slate-400 pl-4">
+                    <div>
+                        <span class="block uppercase font-bold">System Status</span>
+                        <span class="text-emerald-600 font-extrabold uppercase">Operational</span>
+                    </div>
+                </div>
+                <button
+                    id="theme-toggle-btn"
+                    class="flex items-center gap-2 px-3.5 py-2 border border-slate-500 rounded-lg text-xs font-bold hover:bg-slate-200 transition shadow-sm uppercase tracking-wider"
+                    title="Toggle Day/Night Mode"
+                >
+                    <span id="theme-icon">☀️</span>
+                    <span id="theme-text">Light Mode</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- STEP 1: SAVED ESTABLISHMENTS PANEL -->
+        <section class="corporate-panel p-6 rounded-xl transition-all duration-300">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b pb-4 gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    </div>
+                    <h2 id="establishments-header" class="text-base font-bold tracking-wide uppercase">
+                        1. Saved Records (0)
+                    </h2>
+                </div>
+                
+                <!-- Action Controls (Import/Export) -->
+                <div class="flex space-x-3 w-full sm:w-auto">
+                    <input type="file" id="import-file-input" accept=".json" class="hidden" />
+                    <button
+                        id="import-btn"
+                        class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition duration-150 shadow-sm text-xs uppercase tracking-wider"
+                    >
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        Import Data
+                    </button>
+                    <button
+                        id="export-btn"
+                        class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition duration-150 shadow-sm text-xs uppercase tracking-wider"
+                    >
+                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Export Data
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Search & Toggle Bar -->
+            <div class="flex flex-col sm:flex-row gap-3 mb-6">
+                <div class="relative flex-grow">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </span>
+                    <input
+                        id="search-input"
+                        type="text"
+                        placeholder="SEARCH RECORDS OR SPECIFICATIONS..."
+                        class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/30 uppercase tracking-wider transition-colors duration-200"
+                    />
+                </div>
+                <button
+                    id="toggle-list-btn"
+                    class="px-5 py-2.5 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition duration-150 shadow-sm text-xs whitespace-nowrap flex items-center justify-center gap-2 uppercase tracking-wider"
+                >
+                    <span id="toggle-list-icon">📂</span>
+                    <span id="toggle-list-text">Show All</span>
+                </button>
+            </div>
+
+            <!-- Establishments list container -->
+            <div id="establishments-container">
+                 <!-- Establishments list gets rendered here by JavaScript -->
+            </div>
+        </section>
+
+        <!-- Two-column or stacked layout for Add and Structure tools -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- STEP 2: ADD NEW ESTABLISHMENT -->
+            <section class="corporate-panel p-6 rounded-xl h-fit md:col-span-1">
+                <div class="flex items-center gap-3 mb-4 border-b pb-3">
+                    <div class="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-600">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h2 class="text-sm font-bold tracking-wide uppercase">
+                        2. Create Record
+                    </h2>
+                </div>
+                
+                <form id="add-establishment-form" class="flex flex-col space-y-4">
+                    <div>
+                        <label for="new-establishment-name" class="block text-[11px] font-bold tracking-wider uppercase mb-1">Record Identifier</label>
+                        <input
+                            id="new-establishment-name"
+                            type="text"
+                            placeholder="e.g. CLIENT ABC"
+                            required
+                            class="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-xs uppercase font-bold"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-all duration-150 text-xs uppercase tracking-wider"
+                    >
+                        Save Record
+                    </button>
+                </form>
+            </section>
+
+            <!-- STEP 3: DEFINE DATA STRUCTURE -->
+            <section class="corporate-panel p-6 rounded-xl h-fit md:col-span-2">
+                <div class="flex items-center gap-3 mb-4 border-b pb-3">
+                    <div class="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-600">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a2 2 0 002 2h3a2 2 0 012 2v3a2 2 0 002 2v6a2 2 0 01-2 2h-3a2 2 0 00-2-2v-1a2 2 0 00-2-2H9a2 2 0 00-2 2v1a2 2 0 01-2 2H2a2 2 0 01-2-2v-6a2 2 0 002-2v-3a2 2 0 012-2h3a2 2 0 002-2V4z"></path></svg>
+                    </div>
+                    <h2 class="text-sm font-bold tracking-wide uppercase">
+                        3. Field Schema Architecture (Drag to Reorder)
+                    </h2>
+                </div>
+
+                <form id="add-field-form" class="flex flex-wrap sm:flex-nowrap items-center gap-2 mb-4">
+                    <input
+                        id="new-field-name"
+                        type="text"
+                        placeholder="ADD MATRIX FIELD..."
+                        class="flex-grow w-full sm:w-auto p-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-xs uppercase font-bold"
+                    />
+                    <select id="new-field-type" class="p-2.5 border rounded-lg focus:outline-none text-xs uppercase font-bold w-full sm:w-auto">
+                        <option value="text">DATA STRING</option>
+                        <option value="date">DATE</option>
+                        <option value="checkbox">BOOLEAN</option>
+                        <option value="image">IMAGE</option>
+                    </select>
+                    <button
+                        type="submit"
+                        class="px-5 py-2.5 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition-all duration-150 text-xs uppercase tracking-wider w-full sm:w-auto"
+                    >
+                        Add Field
+                    </button>
+                </form>
+
+                <div class="max-h-96 overflow-y-auto pr-2">
+                    <ul id="custom-fields-list" class="space-y-2">
+                        <!-- Custom fields will be rendered here by JavaScript -->
+                    </ul>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="copy-toast" class="fixed bottom-6 right-6 corporate-panel border border-blue-500 p-4 rounded-xl shadow-2xl transition-all duration-300 z-50 opacity-0 pointer-events-none flex items-center gap-3">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-ping"></span>
+            <p class="text-xs font-bold tracking-wider uppercase" id="toast-message-span">
+                ACTION COMPLETED
+            </p>
+        </div>
+
+        <!-- EDIT DETAILS MODAL -->
+        <div id="details-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+            <div class="corporate-panel rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 relative">
+                <div class="absolute top-0 right-0 p-3">
+                    <button data-action="close-modal" class="hover:text-blue-600 transition-transform text-2xl font-bold leading-none">&times;</button>
+                </div>
+                <h3 id="modal-title" class="text-base font-bold mb-4 border-b pb-2 uppercase tracking-wider">
+                    Configure Record Details
+                </h3>
+                <form id="details-form" class="space-y-4">
+                    <!-- Modal form content will be rendered here by JavaScript -->
+                </form>
+            </div>
+        </div>
+
+        <!-- VIEW DETAILS MODAL -->
+        <div id="view-details-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+            <div id="view-details-modal-content" class="corporate-panel rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+                <!-- View Modal content will be rendered by JS -->
+            </div>
+        </div>
+        
+        <!-- FILTER/CUSTOM VIEW MODAL -->
+        <div id="filter-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+            <div class="corporate-panel rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col p-6">
+                <div class="flex justify-between items-center border-b pb-3 mb-4">
+                    <h3 class="text-base font-bold uppercase tracking-wider">Construct Filter View</h3>
+                    <button data-action="close-filter-modal" class="hover:text-blue-600 transition text-2xl font-bold leading-none">&times;</button>
+                </div>
+                <div class="mb-4">
+                    <label for="filter-name-input" class="block text-xs font-bold uppercase mb-1.5">Filter View Name</label>
+                    <input 
+                        id="filter-name-input" 
+                        type="text" 
+                        placeholder="e.g. SUMMARY VIEW" 
+                        form="filter-form"
+                        class="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 uppercase text-xs font-bold"
+                    />
+                </div>
+                <form id="filter-form" class="flex-grow overflow-y-auto pr-2 space-y-2">
+                    <!-- Checkbox list of fields will be rendered here -->
+                </form>
+                <div class="flex justify-end space-x-3 pt-4 border-t mt-4">
+                    <button type="button" data-action="close-filter-modal" class="px-4 py-2 border rounded-lg uppercase text-xs font-bold">Cancel</button>
+                    <button type="submit" form="filter-form" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm uppercase text-xs">Save Filter</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- IMPORT OVERWRITE CONFIRMATION MODAL -->
+        <div id="import-confirm-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+            <div class="corporate-panel rounded-xl shadow-2xl w-full max-w-md p-6">
+                <h3 class="text-base font-bold mb-3 uppercase tracking-wider text-amber-600">Import Data Packet</h3>
+                <p class="text-xs mb-6 font-semibold">Inbound file: <strong id="import-filename" class="font-bold text-blue-600"></strong>. Choose import protocol:</p>
+                <div class="flex flex-col gap-2.5">
+                    <button id="import-action-merge" class="w-full py-2.5 border border-blue-500 bg-blue-500/10 text-blue-600 font-bold rounded-lg hover:bg-blue-500/20 uppercase text-xs tracking-wider">Merge & Integrate Data</button>
+                    <button id="import-action-replace" class="w-full py-2.5 border border-red-500 bg-red-500/10 text-red-600 font-bold rounded-lg hover:bg-red-500/20 uppercase text-xs tracking-wider">Wipe & Completely Replace</button>
+                    <button id="import-action-cancel" class="w-full py-2.5 border rounded-lg font-bold uppercase text-xs tracking-wider">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CUSTOM CONFIRMATION DIALOGUE -->
+        <div id="confirm-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+            <div class="corporate-panel rounded-xl shadow-2xl w-full max-w-md p-6">
+                <h3 id="confirm-title" class="text-base font-bold mb-2 uppercase tracking-wider">Confirm Operation</h3>
+                <p id="confirm-message" class="text-xs mb-6 font-semibold">Are you sure you want to proceed?</p>
+                <div class="flex justify-end space-x-3">
+                    <button id="confirm-cancel-btn" class="px-4 py-2 border rounded-lg uppercase text-xs font-bold">Cancel</button>
+                    <button id="confirm-action-btn" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm uppercase text-xs">Confirm</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // --- SUPABASE CONFIGURATION ---
+            // Replace these strings with your Supabase project URL and anon public key
+            const SUPABASE_URL = 'https://jkrnznmzcatlyhvihuua.supabase.co';
+            const SUPABASE_ANON_KEY = 'sb_publishable_iByYWvwuTGiK6qoATzQQWQ_9N_Uazox';
+            
+            let supabaseClient = null;
+            if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY' && window.supabase) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                document.getElementById('sync-status').textContent = 'SUPABASE CLOUD ACTIVE';
+            }
+
+            // --- STATE MANAGEMENT ---
+            let state = {
+                customFields: [],
+                establishments: [],
+                searchTerm: '',
+                editingEstablishmentId: null,
+                viewingEstablishmentId: null,
+                savedFilters: [],
+                activeFilterId: null,
+                editingFilterId: null,
+                isListExpanded: false,
+                isDarkMode: true
+            };
+            
+            // --- IMPORT STATE ---
+            let fileToImport = null;
+            let fileInputElement = null;
+
+            // --- LOCAL STORAGE KEY ---
+            const APP_STORAGE_KEY = 'enterpriseDataManager';
+            const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            // --- DATE HELPER FUNCTION ---
+            function getDaysElapsedText(dateStr) {
+                if (!dateStr) return '';
+                const parts = dateStr.split('-');
+                if (parts.length !== 3) return '';
+                
+                const targetDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                targetDate.setHours(0, 0, 0, 0);
+                
+                const diffTime = today - targetDate;
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays === 0) return 'Today';
+                if (diffDays === 1) return '1 day ago';
+                if (diffDays > 1) return `${diffDays} days ago`;
+                if (diffDays < 0) return `In ${Math.abs(diffDays)} days`;
+                return '';
+            }
+
+            // --- THEME TOGGLE LOGIC ---
+            const bodyEl = document.body;
+            const themeToggleBtn = document.getElementById('theme-toggle-btn');
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+
+            function setTheme(dark) {
+                state.isDarkMode = dark;
+                if (dark) {
+                    bodyEl.classList.remove('light-mode');
+                    bodyEl.classList.add('dark-mode');
+                    themeIcon.textContent = '☀️';
+                    themeText.textContent = 'Light Mode';
+                } else {
+                    bodyEl.classList.remove('dark-mode');
+                    bodyEl.classList.add('light-mode');
+                    themeIcon.textContent = '🌙';
+                    themeText.textContent = 'Dark Mode';
+                }
+                saveState();
+            }
+
+            themeToggleBtn.addEventListener('click', () => {
+                setTheme(!state.isDarkMode);
+            });
+
+            // --- REUSABLE CONFIRM DIALOG ---
+            let activeConfirmCallback = null;
+            function showConfirmModal(title, message, onConfirm, isDangerous = true) {
+                document.getElementById('confirm-title').textContent = title;
+                document.getElementById('confirm-message').textContent = message;
+                const actionBtn = document.getElementById('confirm-action-btn');
+                
+                if (isDangerous) {
+                    actionBtn.className = "px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm uppercase text-xs";
+                } else {
+                    actionBtn.className = "px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm uppercase text-xs";
+                }
+                
+                activeConfirmCallback = onConfirm;
+                document.getElementById('confirm-modal').classList.remove('hidden');
+            }
+
+            document.getElementById('confirm-cancel-btn').addEventListener('click', () => {
+                document.getElementById('confirm-modal').classList.add('hidden');
+                activeConfirmCallback = null;
+            });
+
+            document.getElementById('confirm-action-btn').addEventListener('click', () => {
+                if (activeConfirmCallback) activeConfirmCallback();
+                document.getElementById('confirm-modal').classList.add('hidden');
+                activeConfirmCallback = null;
+            });
+
+            async function loadState() {
+                // Try Supabase first if connected
+                if (supabaseClient) {
+                    try {
+                        const { data, error } = await supabaseClient
+                            .from('app_state')
+                            .select('*')
+                            .eq('id', 'main_state')
+                            .single();
+                        
+                        if (data && data.payload) {
+                            state = data.payload;
+                            if (typeof state.isDarkMode === 'undefined') state.isDarkMode = true;
+                            setTheme(state.isDarkMode);
+                            localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state));
+                            return;
+                        }
+                    } catch (err) {
+                        console.warn('Supabase load fallback to localStorage:', err);
+                    }
+                }
+
+                // Fallback to localStorage
+                const savedState = localStorage.getItem(APP_STORAGE_KEY);
+                if (savedState) {
+                    state = JSON.parse(savedState);
+                    
+                    if (state.customFields && state.customFields.length > 0 && typeof state.customFields[0] === 'string') {
+                        state.customFields = state.customFields.map(fieldKey => ({
+                            key: fieldKey,
+                            type: 'text'
+                        }));
+                    }
+                    
+                    if (typeof state.savedFilters === 'undefined') state.savedFilters = [];
+                    if (typeof state.activeFilterId === 'undefined') state.activeFilterId = null;
+                    if (typeof state.editingFilterId === 'undefined') state.editingFilterId = null;
+                    if (typeof state.isListExpanded === 'undefined') state.isListExpanded = false;
+                    if (typeof state.isDarkMode === 'undefined') state.isDarkMode = true;
+
+                    setTheme(state.isDarkMode);
+
+                    if (state.establishments) {
+                        state.establishments.forEach(est => {
+                            if (typeof est.collapsed === 'undefined') {
+                                est.collapsed = [];
+                            }
+                        });
+                    }
+                } else {
+                    state = {
+                        customFields: [],
+                        establishments: [],
+                        searchTerm: '',
+                        editingEstablishmentId: null,
+                        viewingEstablishmentId: null,
+                        savedFilters: [],
+                        activeFilterId: null,
+                        editingFilterId: null,
+                        isListExpanded: false,
+                        isDarkMode: true
+                    };
+                    setTheme(true);
+                }
+            }
+
+            async function saveState() {
+                // Save locally immediately for offline-first responsiveness
+                localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state));
+
+                // Sync to Supabase in the background if active
+                if (supabaseClient) {
+                    try {
+                        await supabaseClient
+                            .from('app_state')
+                            .upsert({ id: 'main_state', payload: state, updated_at: new Date() });
+                    } catch (err) {
+                        console.warn('Supabase sync background error:', err);
+                    }
+                }
+            }
+
+            // --- DOM ELEMENTS ---
+            const customFieldsList = document.getElementById('custom-fields-list');
+            const establishmentsContainer = document.getElementById('establishments-container');
+            const establishmentsHeader = document.getElementById('establishments-header');
+            const editModal = document.getElementById('details-modal');
+            const editModalTitle = document.getElementById('modal-title');
+            const editModalForm = document.getElementById('details-form');
+            const viewModal = document.getElementById('view-details-modal');
+            const viewModalContent = document.getElementById('view-details-modal-content');
+            const filterModal = document.getElementById('filter-modal');
+            const filterForm = document.getElementById('filter-form');
+            const searchInput = document.getElementById('search-input');
+            const toggleListBtn = document.getElementById('toggle-list-btn');
+            const toggleListText = document.getElementById('toggle-list-text');
+            const toggleListIcon = document.getElementById('toggle-list-icon');
+            const toast = document.getElementById('copy-toast');
+            const importConfirmModal = document.getElementById('import-confirm-modal');
+            
+            // --- UTILITY & PARSING FUNCTIONS ---
+            const parseCustomFields = (fields) => {
+                const root = [];
+                const nodeMap = new Map();
+                fields.forEach(fieldObj => {
+                    const parts = fieldObj.key.split(':');
+                    let path = [];
+                    parts.forEach(part => {
+                        path.push(part);
+                        const currentPath = path.join(':');
+                        if (!nodeMap.has(currentPath)) {
+                            const parentPath = path.slice(0, -1).join(':');
+                            const parentNode = nodeMap.get(parentPath);
+                            const fullField = fields.find(f => f.key === currentPath) || {};
+                            const newNode = { name: part, fullName: currentPath, type: fullField.type || 'text', children: [] };
+                            nodeMap.set(currentPath, newNode);
+                            if (parentNode) {
+                                parentNode.children.push(newNode);
+                            } else {
+                                root.push(newNode);
+                            }
+                        }
+                    });
+                });
+                return root;
+            };
+            
+            const isDescendantInFilter = (node, filteredFields) => {
+                if (filteredFields.includes(node.fullName)) return true;
+                if (node.children && node.children.length > 0) {
+                    return node.children.some(child => isDescendantInFilter(child, filteredFields));
+                }
+                return false;
+            };
+
+            const buildCopyText = (nodes, establishment, level = 0, filteredFields = null) => {
+                let text = '';
+                const indent = '  '.repeat(level);
+                nodes.forEach(node => {
+                    const hasChildInFilter = filteredFields ? node.children.some(child => isDescendantInFilter(child, filteredFields)) : false;
+                    const isInFilter = filteredFields ? filteredFields.includes(node.fullName) : true;
+                    if (filteredFields && !isInFilter && !hasChildInFilter) return;
+
+                    const isLeaf = node.children.length === 0;
+                    if (isLeaf) {
+                        if (isInFilter) {
+                            const value = (establishment.details && establishment.details[node.fullName]);
+                            if (node.type === 'checkbox') {
+                                const isChecked = [true, 'true', 'on', 1].includes(value);
+                                text += `${indent}${node.name}: ${isChecked ? 'Yes' : 'No'}\n`;
+                            } else if (node.type === 'image') {
+                                text += `${indent}${node.name}: ${value ? '[IMAGE_DECAL]' : 'VOID'}\n`;
+                            } else if (node.type === 'date') {
+                                const daysElapsed = value ? getDaysElapsedText(value) : '';
+                                text += `${indent}${node.name}: ${value || '—'}${daysElapsed ? ` (${daysElapsed})` : ''}\n`;
+                            } else {
+                                 text += `${indent}${node.name}: ${value || '—'}\n`;
+                            }
+                        }
+                    } else {
+                        text += `${indent}${node.name}:\n`;
+                        text += buildCopyText(node.children, establishment, level + 1, filteredFields);
+                    }
+                });
+                return text;
+            };
+            
+            const formatValueWithBrackets = (value) => {
+                if (!value) return '—';
+                const escapedValue = value.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const regex = /\[(.*?)\]/g;
+                if (!escapedValue.includes('[')) return escapedValue;
+
+                return escapedValue.replace(regex, (match, content) => {
+                    const safeContent = content.replace(/"/g, '&quot;');
+                    return `<b class="font-bold text-blue-600 cursor-pointer hover:underline" data-action="copy-bracketed" data-value="${safeContent}" title="Copy: ${safeContent}">${match}</b>`;
+                });
+            };
+
+            // --- RENDER FUNCTIONS ---
+            function render() {
+                renderCustomFields();
+                renderEstablishments();
+                document.body.classList.remove('dragging');
+            }
+
+            function renderCustomFields() {
+                if (!customFieldsList) return;
+                customFieldsList.innerHTML = '';
+
+                if (state.customFields.length === 0) {
+                    customFieldsList.innerHTML = `
+                        <div class="corporate-panel-inner p-6 rounded-lg text-center border border-dashed">
+                            <p class="italic text-xs uppercase tracking-wider font-bold">Schema database is currently empty.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                state.customFields.forEach((fieldObj, index) => {
+                    const dragIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>`;
+                    const editIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>`;
+                    const addIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>`;
+                    const removeIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
+                    
+                    const depth = (fieldObj.key.match(/:/g) || []).length;
+                    const indentStyle = `margin-left: ${depth * 20}px;`;
+                    
+                    let typeBadgeName = 'String';
+                    if (fieldObj.type === 'checkbox') typeBadgeName = 'Boolean';
+                    if (fieldObj.type === 'image') typeBadgeName = 'Image';
+                    if (fieldObj.type === 'date') typeBadgeName = 'Date';
+
+                    const typeBadge = `<span class="text-[9px] border px-2 py-0.5 rounded ml-2 uppercase font-bold">${typeBadgeName}</span>`;
+                    const displayName = fieldObj.key.split(':').pop();
+
+                    html += `
+                        <li class="custom-field-li flex items-center p-2.5 corporate-panel-inner rounded-lg group transition-all duration-150 cursor-grab" style="${indentStyle}" data-index="${index}" data-field="${fieldObj.key}" data-name="${displayName}" draggable="true">
+                            <div class="drag-handle p-1 mr-1 text-slate-400 hover:text-blue-600" title="Drag to reorder">${dragIcon}</div>
+                            <span class="font-bold break-all uppercase text-xs" data-role="field-name">${fieldObj.key}</span>
+                            ${typeBadge}
+                            <div class="field-actions flex items-center ml-auto space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                                <button data-action="edit-field" class="p-1 border rounded-md font-bold" title="Edit Field Name">${editIcon}</button>
+                                <button data-action="add-subdetail" class="p-1 border rounded-md font-bold" title="Add Subfield">${addIcon}</button>
+                                <button data-action="remove-field" class="p-1 border rounded-md text-red-600 font-bold" title="Remove Field">${removeIcon}</button>
+                            </div>
+                        </li>
+                    `;
+                });
+                customFieldsList.innerHTML = html;
+            }
+
+            function renderDetailTreeHTML(nodes, establishment, filteredFields = null) {
+                let html = '';
+                nodes.forEach(node => {
+                    const hasChildInFilter = filteredFields ? node.children.some(child => isDescendantInFilter(child, filteredFields)) : false;
+                    const isInFilter = filteredFields ? filteredFields.includes(node.fullName) : true;
+
+                    if (filteredFields && !isInFilter && !hasChildInFilter) return;
+
+                    const isLeaf = node.children.length === 0;
+                    if (isLeaf) {
+                        if (!isInFilter) return;
+                        
+                        let valueHTML;
+                        const value = (establishment.details && establishment.details[node.fullName]);
+
+                        if (node.type === 'checkbox') {
+                            const isChecked = [true, 'true', 'on', 1].includes(value);
+                             valueHTML = isChecked
+                                ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-500/20 text-emerald-700 border border-emerald-500">YES</span>'
+                                : '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold border">NO</span>';
+                        } else if (node.type === 'image') {
+                            valueHTML = value
+                                ? `<div class="relative group mt-1 max-w-[200px] rounded-lg overflow-hidden border shadow-sm">
+                                     <img src="${value}" class="max-h-28 w-auto object-contain cursor-pointer hover:scale-105 transition duration-200" alt="${node.name}" data-action="copy-single" data-value="${value}" title="Click to copy image code" />
+                                   </div>`
+                                : `<span class="italic text-[10px] font-bold">NO IMAGE</span>`;
+                        } else if (node.type === 'date') {
+                            const daysElapsed = value ? getDaysElapsedText(value) : '';
+                            const safeValue = String(value || '').replace(/"/g, '&quot;');
+                            const hasValueClass = value ? 'cursor-pointer hover:bg-blue-500/20 hover:text-blue-700 rounded transition-colors duration-100 px-1.5 font-bold' : 'font-bold';
+                            const title = value ? `Click to copy '${value}'` : "No date set";
+                            const dataAction = value ? `data-action="copy-single" data-value="${safeValue}" data-field-name="${node.name}"` : '';
+
+                            valueHTML = `
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="break-all text-xs font-bold ${hasValueClass}" ${dataAction} title="${title}">${value || '<span class="font-bold">—</span>'}</span>
+                                    ${daysElapsed ? `<span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-blue-500/20 text-blue-600 border border-blue-500/40 uppercase tracking-wider">${daysElapsed}</span>` : ''}
+                                </div>
+                            `;
+                        } else {
+                            const containsBrackets = value && String(value).includes('[');
+                            const hasValueClass = value && !containsBrackets ? 'cursor-pointer hover:bg-blue-500/20 hover:text-blue-700 rounded transition-colors duration-100 px-1.5 font-bold' : 'font-bold';
+                            const title = value && !containsBrackets ? `Click to copy '${value}'` : (value ? "" : "No value set");
+                            const safeValue = String(value || '').replace(/"/g, '&quot;');
+                            const dataAction = value && !containsBrackets ? `data-action="copy-single" data-value="${safeValue}" data-field-name="${node.name}"` : '';
+                            valueHTML = `<span class="flex-1 break-all text-xs font-bold ${hasValueClass}" ${dataAction} title="${title}">${containsBrackets ? formatValueWithBrackets(String(value)) : (value || '<span class="font-bold">—</span>')}</span>`;
+                        }
+
+                        const searchableText = `${node.name}: ${node.type === 'image' ? (value ? '[image]' : '') : (value || '')}`;
+                        const editIconBtn = `<button data-action="edit-item-direct" data-field-key="${node.fullName}" class="p-1 border rounded-md ml-2 font-bold transition-all duration-150 flex-shrink-0" title="Edit ${node.name}">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        </button>`;
+
+                        html += `
+                            <div class="flex items-center justify-between py-2 border-b px-2 rounded-lg transition group" data-searchable-text="${searchableText.replace(/"/g, '&quot;')}">
+                                <div class="flex items-start flex-grow overflow-hidden pr-2">
+                                    <span class="font-bold text-[11px] pr-2 w-28 flex-shrink-0 uppercase tracking-wider">${node.name}:</span>
+                                    ${valueHTML}
+                                </div>
+                                ${editIconBtn}
+                            </div>
+                        `;
+                    } else {
+                        const isCollapsed = establishment.collapsed && establishment.collapsed.includes(node.fullName);
+                        const arrowIcon = `
+                            <svg class="w-3.5 h-3.5 transition-transform duration-200 ${isCollapsed ? 'transform -rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>`;
+                        const searchableTextBranch = `${node.name}:`;
+                        html += `
+                            <div class="pt-1">
+                                <div 
+                                    class="flex items-center cursor-pointer group p-1.5 rounded-lg"
+                                    data-action="toggle-collapse"
+                                    data-field-key="${node.fullName}"
+                                    data-searchable-text="${searchableTextBranch}"
+                                >
+                                    ${arrowIcon}
+                                    <span class="font-bold text-xs ml-1.5 uppercase tracking-wider">${node.name}:</span>
+                                </div>
+                                <div class="pl-4 border-l ml-2.5 mt-1 space-y-1 ${isCollapsed ? 'hidden' : ''}">
+                                    ${renderDetailTreeHTML(node.children, establishment, filteredFields)}
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+                return html;
+            }
+
+            function renderEstablishments() {
+                const lowerCaseSearchTerm = state.searchTerm.toLowerCase().trim();
+                let filteredList = state.establishments;
+
+                if (lowerCaseSearchTerm) {
+                    filteredList = state.establishments.filter(e =>
+                        (e.name || '').toLowerCase().includes(lowerCaseSearchTerm) ||
+                        Object.values(e.details || {}).some(detail =>
+                            String(detail).toLowerCase().includes(lowerCaseSearchTerm)
+                        )
+                    );
+                }
+
+                filteredList.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+                
+                establishmentsHeader.textContent = `1. Saved Records (${state.establishments.length})`;
+
+                if (lowerCaseSearchTerm) {
+                    toggleListBtn.disabled = true;
+                    toggleListBtn.className = "px-5 py-2.5 border cursor-not-allowed shadow-sm text-xs uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 font-bold";
+                    toggleListText.textContent = "Filtered Search";
+                    toggleListIcon.textContent = "🔍";
+                } else {
+                    toggleListBtn.disabled = false;
+                    toggleListBtn.className = "px-5 py-2.5 border font-bold rounded-lg transition duration-150 shadow-sm text-xs whitespace-nowrap flex items-center justify-center gap-2 uppercase tracking-wider";
+                    
+                    if (state.isListExpanded) {
+                        toggleListText.textContent = "Collapse List";
+                        toggleListIcon.textContent = "📂";
+                    } else {
+                        toggleListText.textContent = `Expand List (${state.establishments.length})`;
+                        toggleListIcon.textContent = "📁";
+                    }
+                }
+
+                if (state.establishments.length === 0) {
+                    establishmentsContainer.innerHTML = `
+                        <div class="corporate-panel-inner border-2 border-dashed rounded-xl p-8 text-center">
+                            <p class="uppercase tracking-wider text-xs font-bold">NO RECORDS STORED IN DATABASE</p>
+                            <p class="text-[11px] uppercase mt-1 font-bold">Create a new record entry below to begin logging data.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (!lowerCaseSearchTerm && !state.isListExpanded) {
+                    establishmentsContainer.innerHTML = `
+                        <div class="corporate-panel-inner border rounded-xl p-6 text-center shadow-sm relative overflow-hidden">
+                            <p class="font-bold uppercase tracking-wider text-xs">Database List Minimized (${state.establishments.length} Records Saved)</p>
+                            <p class="text-[11px] mt-1 max-w-md mx-auto uppercase font-bold">List is collapsed to optimize view. Expand to view active cards.</p>
+                            <div class="mt-4 flex flex-wrap justify-center gap-3">
+                                <button data-action="expand-list" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition duration-150 uppercase tracking-wider">
+                                    Expand Record List
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (lowerCaseSearchTerm && filteredList.length === 0) {
+                    establishmentsContainer.innerHTML = `
+                        <div class="corporate-panel-inner border border-red-500 rounded-xl p-8 text-center">
+                            <p class="uppercase tracking-wider text-xs font-extrabold">NO MATCH FOUND FOR "${state.searchTerm}"</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                establishmentsContainer.innerHTML = `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-fade-in">
+                        ${filteredList.map(est => {
+                            const totalDetails = state.customFields.filter(f => !f.key.includes(':') || state.customFields.find(p => p.key === f.key.substring(0, f.key.lastIndexOf(':')))).length;
+                            const filledDetails = Object.values(est.details || {}).filter(val => {
+                                const field = state.customFields.find(f => f.key === Object.keys(est.details).find(k => est.details[k] === val));
+                                if (field && field.type === 'checkbox') return val === true || val === 'true';
+                                return String(val).trim() !== '';
+                            }).length;
+                            
+                            const percentageFilled = totalDetails > 0 ? Math.round((filledDetails / totalDetails) * 100) : 0;
+                            const levelColor = percentageFilled === 100 ? 'bg-emerald-600' : 'bg-blue-600';
+
+                            return `
+                            <div data-id="${est.id}" data-action="view-details" class="corporate-panel-inner p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between relative group">
+                                <div class="flex justify-between items-start gap-2 mb-2">
+                                    <h4 class="font-bold truncate tracking-wider uppercase text-xs flex-grow" title="${est.name}">${est.name}</h4>
+                                </div>
+                                <div class="mt-2">
+                                    <div class="flex justify-between items-center text-[10px] uppercase tracking-wider mb-1 font-extrabold">
+                                        <span>COMPLETION:</span>
+                                        <span class="font-bold">${filledDetails}/${totalDetails}</span>
+                                    </div>
+                                    <div class="w-full bg-slate-300 dark:bg-slate-800 h-2 rounded-full overflow-hidden border">
+                                        <div class="h-full ${levelColor} transition-all duration-300" style="width: ${percentageFilled}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+
+            function renderInputFieldTreeHTML(nodes) {
+                let html = '';
+                const establishment = state.establishments.find(e => e.id === state.editingEstablishmentId);
+                if (!establishment) return '';
+
+                nodes.forEach(node => {
+                    const isLeaf = node.children.length === 0;
+                    if (isLeaf) {
+                        const value = (establishment.details && establishment.details[node.fullName]);
+
+                        if (node.type === 'checkbox') {
+                            const isChecked = [true, 'true', 'on', 1].includes(value);
+                            html += `
+                                <div class="flex items-center rounded-lg corporate-panel-inner border p-3" data-searchable-container data-searchable-text="${node.name.toLowerCase()}">
+                                    <input
+                                        id="${node.fullName}"
+                                        name="${node.fullName}"
+                                        type="checkbox"
+                                        ${isChecked ? 'checked' : ''}
+                                        class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500/30 cursor-pointer"
+                                    />
+                                    <label for="${node.fullName}" class="ml-3 block text-xs font-bold select-none uppercase tracking-wider cursor-pointer">${node.name}</label>
+                                </div>`;
+                        } else if (node.type === 'date') {
+                            const safeValue = String(value || '').replace(/"/g, '&quot;');
+                            const daysElapsed = value ? getDaysElapsedText(value) : '';
+                            html += `
+                                <div data-searchable-container data-searchable-text="${node.name.toLowerCase()}" class="space-y-1.5 p-3 rounded-lg corporate-panel-inner border">
+                                    <div class="flex justify-between items-center">
+                                        <label for="${node.fullName}" class="block text-[10px] font-bold tracking-wider uppercase">${node.name} (DATE)</label>
+                                        ${daysElapsed ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 border border-blue-500/30 uppercase tracking-wider">${daysElapsed}</span>` : ''}
+                                    </div>
+                                    <div class="flex gap-2 items-center">
+                                        <input
+                                            id="${node.fullName}"
+                                            name="${node.fullName}"
+                                            type="date"
+                                            value="${safeValue}"
+                                            class="flex-grow p-2 border rounded-lg focus:ring-blue-500/30 focus:border-blue-500 text-xs font-bold cursor-pointer"
+                                        />
+                                        <button
+                                            type="button"
+                                            data-action="set-today"
+                                            data-target-input="${node.fullName}"
+                                            class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all"
+                                        >
+                                            Today
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        } else if (node.type === 'image') {
+                            const hasImage = !!value;
+                            html += `
+                                <div class="space-y-1.5 p-3 rounded-lg corporate-panel-inner border" data-searchable-container data-searchable-text="${node.name.toLowerCase()}">
+                                    <label class="block text-[10px] font-bold tracking-wider uppercase">${node.name} (IMAGE)</label>
+                                    <div class="flex items-center gap-4">
+                                        <div class="relative w-14 h-14 rounded-lg border flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                            ${hasImage 
+                                                ? `<img id="preview-${node.fullName.replace(/:/g, '-')}" src="${value}" class="object-cover w-full h-full" />` 
+                                                : `<span id="preview-placeholder-${node.fullName.replace(/:/g, '-')}" class="text-[10px] font-bold font-mono">EMPTY</span>`}
+                                        </div>
+                                        <div class="flex-grow space-y-1">
+                                            <input
+                                                id="${node.fullName}"
+                                                name="${node.fullName}"
+                                                type="hidden"
+                                                value="${value || ''}"
+                                            />
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                class="hidden"
+                                                id="file-input-${node.fullName.replace(/:/g, '-')}"
+                                                data-role="image-uploader"
+                                                data-target-hidden="${node.fullName}"
+                                                data-preview-img="preview-${node.fullName.replace(/:/g, '-')}"
+                                                data-preview-placeholder="preview-placeholder-${node.fullName.replace(/:/g, '-')}"
+                                            />
+                                            <div class="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onclick="document.getElementById('file-input-${node.fullName.replace(/:/g, '-')}').click()"
+                                                    class="px-3 py-1.5 border rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all shadow-sm"
+                                                >
+                                                    Upload
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    data-action="clear-decal" 
+                                                    data-target-hidden="${node.fullName}" 
+                                                    data-preview-img="preview-${node.fullName.replace(/:/g, '-')}" 
+                                                    data-preview-placeholder="preview-placeholder-${node.fullName.replace(/:/g, '-')}" 
+                                                    class="${hasImage ? '' : 'hidden'} px-3 py-1.5 border border-red-500 text-red-600 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all"
+                                                    id="clear-btn-${node.fullName.replace(/:/g, '-')}"
+                                                >
+                                                    Clear
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            const safeValue = String(value || '').replace(/"/g, '&quot;');
+                            html += `
+                                <div data-searchable-container data-searchable-text="${node.name.toLowerCase()}" class="space-y-1">
+                                    <label for="${node.fullName}" class="block text-[10px] font-bold tracking-wider uppercase">${node.name}</label>
+                                    <input
+                                        id="${node.fullName}"
+                                        name="${node.fullName}"
+                                        type="text"
+                                        value="${safeValue}"
+                                        class="w-full p-2.5 border rounded-lg focus:ring-blue-500/30 focus:border-blue-500 text-xs font-bold"
+                                        placeholder="Enter value..."
+                                    />
+                                </div>
+                            `;
+                        }
+                    } else {
+                        html += `
+                            <div class="p-3 border rounded-lg corporate-panel-inner space-y-3">
+                                <h5 class="font-bold text-xs uppercase tracking-wider border-b pb-1">${node.name}</h5>
+                                <div class="pl-2 space-y-3 border-l">
+                                    ${renderInputFieldTreeHTML(node.children)}
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+                return html;
+            }
+
+            function processAndCompressImage(file, hiddenInputEl, previewImgId, previewPlaceholderId, clearBtnId) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 320;
+                        const MAX_HEIGHT = 320;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                        hiddenInputEl.value = compressedBase64;
+                        
+                        const previewContainer = hiddenInputEl.closest('.flex-grow').previousElementSibling;
+                        previewContainer.innerHTML = `<img id="${previewImgId}" src="${compressedBase64}" class="object-cover w-full h-full" />`;
+                        
+                        const clearBtn = document.getElementById(clearBtnId);
+                        if (clearBtn) clearBtn.classList.remove('hidden');
+
+                        showToast("IMAGE ENCODED & SAVED");
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            function renderEditModal(focusFieldKey = null) {
+                const establishment = state.establishments.find(e => e.id === state.editingEstablishmentId);
+                if (!establishment) {
+                    editModal.classList.add('hidden');
+                    return;
+                }
+                editModalTitle.innerHTML = `CONFIGURE RECORD: <span class="text-blue-600 font-extrabold">${establishment.name}</span>`;
+
+                const parsedFields = parseCustomFields(state.customFields);
+                const customFieldsHTML = state.customFields.length > 0 ? renderInputFieldTreeHTML(parsedFields) : `<p class="text-xs uppercase font-extrabold">No schema fields defined yet.</p>`;
+                const safeName = establishment.name.replace(/"/g, '&quot;');
+                editModalForm.innerHTML = `
+                    <div class="space-y-1.5">
+                        <label for="establishment-name-modal" class="block text-[10px] font-bold tracking-wider uppercase">Record Designation</label>
+                        <input
+                            id="establishment-name-modal"
+                            name="establishment-name"
+                            type="text"
+                            value="${safeName}"
+                            class="w-full p-2.5 border rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 font-bold uppercase tracking-wider text-xs"
+                            required
+                        />
+                    </div>
+                    <div class="border-t pt-4 space-y-3">
+                        <h4 class="text-xs font-bold tracking-wider uppercase flex items-center justify-between">
+                            <span>Field Specifications</span>
+                        </h4>
+                        <div class="relative">
+                            <input
+                                id="edit-modal-search-input"
+                                type="text"
+                                placeholder="QUICK FILTER FIELDS..."
+                                class="w-full p-2 border rounded-lg focus:outline-none focus:border-blue-600 text-[10px] uppercase font-bold"
+                            />
+                        </div>
+                        <div id="edit-modal-fields-container" class="max-h-60 overflow-y-auto pr-2 border rounded-lg p-3 space-y-3">
+                            ${customFieldsHTML}
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-4 border-t">
+                        <button type="button" data-action="close-modal" class="px-4 py-2 border rounded-lg uppercase text-xs font-bold">Cancel</button>
+                        <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm uppercase text-xs">Save Changes</button>
+                    </div>
+                `;
+                editModal.classList.remove('hidden');
+
+                if (focusFieldKey) {
+                    setTimeout(() => {
+                        const targetEl = editModalForm.querySelector(`[id="${focusFieldKey}"]`) || editModalForm.querySelector(`[name="${focusFieldKey}"]`);
+                        if (targetEl) {
+                            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            targetEl.focus();
+                            const container = targetEl.closest('[data-searchable-container]');
+                            if (container) container.classList.add('search-highlight');
+                        }
+                    }, 100);
+                }
+
+                editModalForm.querySelectorAll('[data-role="image-uploader"]').forEach(uploader => {
+                    uploader.addEventListener('change', (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+
+                        const hiddenInputName = e.target.dataset.targetHidden;
+                        const hiddenInput = editModalForm.querySelector(`[id="${hiddenInputName}"]`);
+                        
+                        const previewImgId = e.target.dataset.previewImg;
+                        const previewPlaceholderId = e.target.dataset.previewPlaceholder;
+                        const clearBtnId = `clear-btn-${hiddenInputName.replace(/:/g, '-')}`;
+
+                        if (hiddenInput) {
+                            processAndCompressImage(file, hiddenInput, previewImgId, previewPlaceholderId, clearBtnId);
+                        }
+                    });
+                });
+
+                editModalForm.querySelectorAll('[data-action="clear-decal"]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const targetHiddenName = btn.dataset.targetHidden;
+                        const hiddenInput = editModalForm.querySelector(`[id="${targetHiddenName}"]`);
+                        if (hiddenInput) {
+                            hiddenInput.value = '';
+                            const previewContainer = btn.closest('.flex-grow').previousElementSibling;
+                            const placeholderId = btn.dataset.previewPlaceholder;
+                            previewContainer.innerHTML = `<span id="${placeholderId}" class="text-[10px] font-bold font-mono">EMPTY</span>`;
+                            btn.classList.add('hidden');
+                            showToast("IMAGE CLEARED");
+                        }
+                    });
+                });
+
+                editModalForm.querySelectorAll('[data-action="set-today"]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const targetInputId = btn.dataset.targetInput;
+                        const dateInput = editModalForm.querySelector(`[id="${targetInputId}"]`);
+                        if (dateInput) {
+                            const todayStr = new Date().toISOString().split('T')[0];
+                            dateInput.value = todayStr;
+                            showToast("DATE SET TO TODAY");
+                        }
+                    });
+                });
+            }
+
+            function renderFilterFieldTreeHTML(nodes, checkedFields = [], level = 0) {
+                let html = '';
+                nodes.forEach(node => {
+                    const isChecked = checkedFields.includes(node.fullName);
+                    const indentStyle = `margin-left: ${level * 24}px;`;
+                    html += `
+                        <div class="flex items-center rounded-lg p-2 transition" style="${indentStyle}">
+                            <input
+                                id="filter-${node.fullName}"
+                                name="${node.fullName}"
+                                type="checkbox"
+                                ${isChecked ? 'checked' : ''}
+                                class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500/30 cursor-pointer"
+                            />
+                            <label for="filter-${node.fullName}" class="ml-3 block text-xs font-bold select-none uppercase tracking-wider cursor-pointer">${node.name}</label>
+                        </div>
+                    `;
+                    if (node.children.length > 0) {
+                        html += renderFilterFieldTreeHTML(node.children, checkedFields, level + 1);
+                    }
+                });
+                return html;
+            }
+
+            function renderFilterModal() {
+                const isEditing = !!state.editingFilterId;
+                const filterToEdit = isEditing ? state.savedFilters.find(f => f.id === state.editingFilterId) : null;
+                const modal = filterModal;
+                const title = modal.querySelector('h3');
+                const nameInput = document.getElementById('filter-name-input');
+                const submitButton = modal.querySelector('button[type="submit"]');
+
+                if (isEditing && filterToEdit) {
+                    title.textContent = 'Edit Filter View';
+                    nameInput.value = filterToEdit.name;
+                    submitButton.textContent = 'Update View';
+                    const checkedFields = filterToEdit.fields;
+                    const parsedFields = parseCustomFields(state.customFields);
+                    filterForm.innerHTML = state.customFields.length > 0 ? renderFilterFieldTreeHTML(parsedFields, checkedFields) : '<p class="italic text-xs font-bold">No fields found.</p>';
+                } else {
+                    title.textContent = 'Construct Filter View';
+                    nameInput.value = '';
+                    submitButton.textContent = 'Save View';
+                    filterForm.reset();
+                    const parsedFields = parseCustomFields(state.customFields);
+                    filterForm.innerHTML = state.customFields.length > 0 ? renderFilterFieldTreeHTML(parsedFields, []) : '<p class="italic text-xs font-bold">No fields found.</p>';
+                }
+                modal.classList.remove('hidden');
+            }
+
+            function renderViewModal() {
+                const establishment = state.establishments.find(e => e.id === state.viewingEstablishmentId);
+                if (!establishment) {
+                    viewModal.classList.add('hidden');
+                    return;
+                }
+
+                const activeFilter = state.savedFilters.find(f => f.id === state.activeFilterId);
+                const fieldsToRender = activeFilter ? activeFilter.fields : null;
+                const parsedFields = parseCustomFields(state.customFields);
+                const detailsHTML = renderDetailTreeHTML(parsedFields, establishment, fieldsToRender);
+                const copyButtonText = activeFilter ? `Copy View: ${activeFilter.name}` : 'Copy All Data';
+
+                let filtersHTML = '';
+                if (state.savedFilters.length > 0) {
+                    filtersHTML = `
+                        <div class="space-y-2">
+                            <h4 class="text-[10px] font-bold tracking-widest uppercase">Saved Filters</h4>
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                ${state.savedFilters.map(filter => `
+                                    <div class="flex items-center rounded-lg border ${state.activeFilterId === filter.id ? 'border-blue-600 bg-blue-500/20 text-blue-700' : 'border'}">
+                                        <button 
+                                            data-action="select-filter" 
+                                            data-filter-id="${filter.id}" 
+                                            class="px-2.5 py-1 text-2xs font-bold uppercase tracking-wider transition-colors"
+                                        >
+                                            ${filter.name}
+                                        </button>
+                                        <button 
+                                            data-action="edit-filter"
+                                            data-filter-id="${filter.id}"
+                                            class="px-1.5 py-1 border-l transition font-bold"
+                                            title="Edit Filter"
+                                        >
+                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                        </button>
+                                        <button 
+                                            data-action="delete-filter" 
+                                            data-filter-id="${filter.id}" 
+                                            class="px-1.5 py-1 text-red-600 transition font-bold"
+                                            title="Delete Filter"
+                                        >
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                        </button>
+                                    </div>
+                                `).join('')}
+                                ${state.activeFilterId ? `<button data-action="clear-filter" class="px-2.5 py-1 text-2xs font-bold border rounded-lg uppercase">Reset</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    filtersHTML = `<p class="text-[10px] tracking-wider uppercase font-bold">No custom filters created.</p>`;
+                }
+
+                viewModalContent.innerHTML = `
+                    <div class="flex justify-between items-start border-b pb-2 mb-3">
+                        <div>
+                            <span class="text-[9px] text-blue-600 uppercase tracking-wider font-extrabold border border-blue-600 bg-blue-500/10 px-1.5 py-0.5 rounded-md">RECORD STREAM</span>
+                            <h3 class="text-lg font-bold break-all uppercase tracking-wider mt-1">${establishment.name}</h3>
+                        </div>
+                        <button data-action="close-view-modal" class="transition text-2xl font-bold leading-none">&times;</button>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <input
+                            id="view-modal-search-input"
+                            type="text"
+                            placeholder="SEARCH RECORD SPECIFICATIONS..."
+                            class="w-full p-2.5 border rounded-lg focus:outline-none focus:border-blue-600 text-xs uppercase font-bold"
+                        />
+                    </div>
+
+                    <div id="details-list-container" class="space-y-1 max-h-[45vh] overflow-y-auto pr-2">
+                        ${detailsHTML || '<p class="italic text-xs uppercase font-bold">No attributes mapped.</p>'}
+                    </div>
+                    <div class="pt-4 border-t mt-4">
+                        <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
+                            <div class="flex-grow">${filtersHTML}</div>
+                            <button data-action="create-filter" class="px-3.5 py-2 border font-bold rounded-lg shadow-sm text-2xs whitespace-nowrap self-end uppercase tracking-widest transition">Add Filter</button>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2.5 justify-end items-center pt-5 border-t mt-5">
+                        <button data-action="copy-all" data-id="${establishment.id}" class="px-4 py-2 border font-bold rounded-lg text-xs uppercase tracking-wider transition">${copyButtonText}</button>
+                        <button data-action="duplicate" data-id="${establishment.id}" class="px-4 py-2 border font-bold rounded-lg text-xs uppercase tracking-wider transition">Duplicate</button>
+                        <button data-action="open-modal" data-id="${establishment.id}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs uppercase tracking-wider shadow-sm transition">Edit Record</button>
+                        <button data-action="delete" data-id="${establishment.id}" class="px-4 py-2 border border-red-500 text-red-600 font-bold rounded-lg text-xs uppercase tracking-wider transition">Delete</button>
+                    </div>
+                `;
+                viewModal.classList.remove('hidden');
+                document.getElementById('view-modal-search-input')?.focus();
+            }
+
+            function showToast(message) {
+                const toastMsg = document.getElementById('toast-message-span');
+                toastMsg.textContent = message;
+                toast.classList.remove('opacity-0');
+                setTimeout(() => {
+                    toast.classList.add('opacity-0');
+                }, 3000);
+            }
+
+            function copyToClipboard(text, successMessage) {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast(successMessage);
+                } catch (err) {
+                    showToast('Copy Failed.');
+                }
+                document.body.removeChild(textArea);
+            }
+
+            // --- Event Listeners for Forms ---
+            document.getElementById('add-field-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const nameInput = document.getElementById('new-field-name');
+                const typeInput = document.getElementById('new-field-type');
+                const fieldKey = nameInput.value.trim();
+                const fieldType = typeInput.value;
+                if (fieldKey && !state.customFields.some(f => f.key === fieldKey)) {
+                    state.customFields.push({ key: fieldKey, type: fieldType });
+                    saveState();
+                    render();
+                    nameInput.value = '';
+                    showToast("SCHEMA FIELD ADDED");
+                } else if (fieldKey) {
+                    showToast("FIELD KEY ALREADY EXISTS");
+                }
+            });
+
+            document.getElementById('add-establishment-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const input = document.getElementById('new-establishment-name');
+                const name = input.value.trim();
+                if (name) {
+                    const initialDetails = {};
+                    state.customFields.forEach(field => {
+                        initialDetails[field.key] = field.type === 'checkbox' ? false : '';
+                    });
+
+                    state.establishments.push({
+                        id: generateId(),
+                        name: name,
+                        details: initialDetails,
+                        collapsed: [],
+                    });
+                    saveState();
+                    render();
+                    input.value = '';
+                    showToast("RECORD CREATED");
+                }
+            });
+            
+            searchInput.addEventListener('input', (e) => {
+                state.searchTerm = e.target.value;
+                renderEstablishments();
+            });
+
+            toggleListBtn.addEventListener('click', () => {
+                state.isListExpanded = !state.isListExpanded;
+                saveState();
+                renderEstablishments();
+            });
+
+            customFieldsList.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+
+                const li = e.target.closest('li');
+                const field = li.dataset.field;
+                const action = button.dataset.action;
+
+                const existingEditor = customFieldsList.querySelector('.field-editor');
+                if (existingEditor && !li.contains(existingEditor)) {
+                    const parentLi = existingEditor.closest('li');
+                    if (parentLi.dataset.role === 'add-new') {
+                        parentLi.remove();
+                    } else {
+                         parentLi.querySelector('[data-role="field-name"]').style.display = 'block';
+                         parentLi.querySelector('.field-actions').style.display = 'flex';
+                         existingEditor.remove();
+                    }
+                }
+                
+                if (action === 'remove-field') {
+                    showConfirmModal(
+                        "Confirm Deletion",
+                        `Delete field "${field}" and all its subfields? This will permanently remove metrics from all records.`,
+                        () => {
+                            state.establishments.forEach(est => {
+                                if (!est.details) return;
+                                Object.keys(est.details).forEach(detailKey => {
+                                    if (detailKey === field || detailKey.startsWith(field + ':')) {
+                                        delete est.details[detailKey];
+                                    }
+                                });
+                            });
+
+                            state.customFields = state.customFields.filter(f => f.key !== field && !f.key.startsWith(field + ':'));
+                            saveState();
+                            render();
+                            showToast(`FIELD DELETED`);
+                        }
+                    );
+                } else if (action === 'add-subdetail') {
+                    const newLi = document.createElement('li');
+                    const parentLevel = (field.match(/:/g) || []).length;
+                    newLi.style.marginLeft = `${(parentLevel + 1) * 20}px`;
+                    newLi.dataset.role = 'add-new';
+                    newLi.innerHTML = `
+                        <div class="field-editor flex-grow flex items-center space-x-2 p-2 corporate-panel-inner rounded-lg border">
+                            <input type="text" class="flex-grow p-1.5 border rounded-lg text-xs uppercase font-bold placeholder-slate-500" placeholder="Subfield name..." />
+                            <select class="p-1.5 border rounded-lg text-xs uppercase font-bold">
+                                <option value="text">STRING</option>
+                                <option value="date">DATE</option>
+                                <option value="checkbox">BOOLEAN</option>
+                                <option value="image">IMAGE</option>
+                            </select>
+                            <button data-action="save-add" data-parent-field="${field}" class="px-2.5 py-1.5 bg-blue-600 text-white text-xs rounded-lg font-bold">Add</button>
+                            <button data-action="cancel-add" class="px-2 py-1.5 border rounded-lg text-xs font-bold">Cancel</button>
+                        </div>
+                    `;
+                    li.after(newLi);
+                    newLi.querySelector('input').focus();
+                
+                } else if (action === 'cancel-add') {
+                    li.remove();
+                
+                } else if (action === 'save-add') {
+                    const parentField = button.dataset.parentField;
+                    const input = li.querySelector('input');
+                    const typeSelect = li.querySelector('select');
+                    const subdetailName = input.value.trim();
+                    const subdetailType = typeSelect.value;
+                    if (subdetailName) {
+                        const newFieldKey = `${parentField}:${subdetailName}`;
+                        if (!state.customFields.some(f => f.key === newFieldKey)) {
+                            const parentIndex = state.customFields.findIndex(f => f.key === parentField);
+                            let insertIndex = parentIndex + 1;
+                            for (let i = state.customFields.length - 1; i > parentIndex; i--) {
+                                if (state.customFields[i].key.startsWith(parentField + ':')) {
+                                    insertIndex = i + 1;
+                                    break;
+                                }
+                            }
+                            state.customFields.splice(insertIndex, 0, {key: newFieldKey, type: subdetailType});
+                            saveState();
+                            render();
+                            showToast(`SUBFIELD ADDED`);
+                        } else {
+                            showToast(`FIELD KEY CONFLICT`);
+                        }
+                    }
+
+                } else if (action === 'edit-field') {
+                    const fieldNameSpan = li.querySelector('[data-role="field-name"]');
+                    const actionsDiv = li.querySelector('.field-actions');
+                    
+                    fieldNameSpan.style.display = 'none';
+                    actionsDiv.style.display = 'none';
+
+                    const editorHTML = `
+                        <div class="field-editor flex-grow flex items-center space-x-2 p-1.5 border rounded-lg corporate-panel-inner">
+                            <input type="text" class="flex-grow p-1 border rounded-lg text-xs uppercase font-bold" value="${li.dataset.name}" />
+                            <button data-action="save-edit" class="px-2.5 py-1 bg-blue-600 text-white text-xs rounded-lg font-bold">Save</button>
+                            <button data-action="cancel-edit" class="px-2 py-1 border rounded-lg text-xs font-bold">Cancel</button>
+                        </div>
+                    `;
+                    actionsDiv.insertAdjacentHTML('beforebegin', editorHTML);
+                    li.querySelector('input').focus();
+
+                } else if (action === 'save-edit') {
+                    const oldFieldKey = li.dataset.field;
+                    const input = li.querySelector('input');
+                    const newName = input.value.trim();
+                    
+                    if (newName && newName !== li.dataset.name) {
+                        const parts = oldFieldKey.split(':');
+                        parts[parts.length - 1] = newName;
+                        const newFieldKey = parts.join(':');
+
+                        if (state.customFields.some(f => f.key === newFieldKey)) {
+                            showToast(`FIELD KEY ALREADY EXISTS`);
+                            input.focus();
+                            return;
+                        }
+                        
+                        state.customFields = state.customFields.map(f => {
+                           if (f.key.startsWith(oldFieldKey + ':')) {
+                               return { ...f, key: newFieldKey + f.key.substring(oldFieldKey.length) };
+                           }
+                           if (f.key === oldFieldKey) {
+                               return { ...f, key: newFieldKey };
+                           }
+                           return f;
+                        });
+
+                        state.establishments.forEach(est => {
+                            const newDetails = {};
+                            Object.keys(est.details || {}).forEach(detailKey => {
+                                let updatedKey = detailKey;
+                                if (detailKey.startsWith(oldFieldKey + ':')) {
+                                    updatedKey = newFieldKey + detailKey.substring(oldFieldKey.length);
+                                } else if (detailKey === oldFieldKey) {
+                                    updatedKey = newFieldKey;
+                                }
+                                newDetails[updatedKey] = est.details[detailKey];
+                            });
+                            est.details = newDetails;
+                        });
+
+                        saveState();
+                        showToast(`FIELD UPDATED`);
+                    }
+                    render();
+
+                } else if (action === 'cancel-edit') {
+                     const fieldNameSpan = li.querySelector('[data-role="field-name"]');
+                     const actionsDiv = li.querySelector('.field-actions');
+                     const editorDiv = li.querySelector('.field-editor');
+                     
+                     fieldNameSpan.style.display = 'block';
+                     actionsDiv.style.display = 'flex';
+                     editorDiv.remove();
+                }
+            });
+
+            establishmentsContainer.addEventListener('click', (e) => {
+                const target = e.target.closest('[data-action="view-details"]');
+                const expandAction = e.target.closest('[data-action="expand-list"]');
+                
+                if (expandAction) {
+                    state.isListExpanded = true;
+                    saveState();
+                    renderEstablishments();
+                    return;
+                }
+
+                if (!target) return;
+                state.viewingEstablishmentId = target.dataset.id;
+                renderViewModal();
+            });
+
+            editModalForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const establishment = state.establishments.find(est => est.id === state.editingEstablishmentId);
+                if (!establishment) return;
+
+                const formData = new FormData(editModalForm);
+                const newDetails = {};
+                
+                for (let [key, value] of formData.entries()) {
+                    if (key === 'establishment-name') {
+                        establishment.name = value.trim() || establishment.name;
+                    } else {
+                        newDetails[key] = value;
+                    }
+                }
+
+                state.customFields.forEach(field => {
+                    if (field.type === 'checkbox') {
+                        const checkbox = editModalForm.querySelector(`[name="${field.key}"]`);
+                        if (checkbox) {
+                            newDetails[field.key] = checkbox.checked;
+                        }
+                    } else if (field.type === 'image') {
+                        const imgHidden = editModalForm.querySelector(`[id="${field.key}"]`);
+                        if (imgHidden) {
+                            newDetails[field.key] = imgHidden.value;
+                        }
+                    }
+                });
+                
+                establishment.details = newDetails;
+                saveState();
+                render();
+                
+                state.editingEstablishmentId = null;
+                editModal.classList.add('hidden');
+                showToast("RECORD SAVED");
+            });
+
+            editModal.addEventListener('click', (e) => {
+                if (e.target.dataset.action === 'close-modal' || e.target === editModal) {
+                    state.editingEstablishmentId = null;
+                    editModal.classList.add('hidden');
+                }
+            });
+
+            editModal.addEventListener('input', (e) => {
+                if (e.target.id === 'edit-modal-search-input') {
+                    const searchTerm = e.target.value.toLowerCase().trim();
+                    const fieldsContainer = document.getElementById('edit-modal-fields-container');
+                    if (!fieldsContainer) return;
+
+                    const allFields = fieldsContainer.querySelectorAll('[data-searchable-container]');
+                    let firstMatch = null;
+
+                    allFields.forEach(field => {
+                        field.classList.remove('search-highlight');
+                    });
+
+                    if (searchTerm) {
+                        for (const field of allFields) {
+                            const text = field.dataset.searchableText;
+                            if (text.includes(searchTerm)) {
+                                firstMatch = field;
+                                break;
+                            }
+                        }
+
+                        if (firstMatch) {
+                            firstMatch.classList.add('search-highlight');
+                            firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                }
+            });
+
+            viewModal.addEventListener('input', (e) => {
+                if (e.target && e.target.id === 'view-modal-search-input') {
+                    const searchTerm = e.target.value.toLowerCase().trim();
+                    const detailsContainer = viewModal.querySelector('#details-list-container');
+                    const allDetails = detailsContainer.querySelectorAll('[data-searchable-text]');
+                    let firstMatch = null;
+
+                    allDetails.forEach(detailEl => {
+                        detailEl.classList.remove('search-highlight');
+                        const text = detailEl.dataset.searchableText.toLowerCase();
+                        if (searchTerm && text.includes(searchTerm)) {
+                            detailEl.classList.add('search-highlight');
+                            if (!firstMatch) {
+                                firstMatch = detailEl;
+                            }
+                        }
+                    });
+
+                    if (firstMatch) {
+                        firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            });
+
+            viewModal.addEventListener('click', (e) => {
+                if (e.target === viewModal) {
+                    state.viewingEstablishmentId = null; 
+                    viewModal.classList.add('hidden'); 
+                    return;
+                }
+
+                const target = e.target.closest('[data-action]');
+                if (!target) return;
+                const action = target.dataset.action;
+
+                if (action === 'edit-item-direct') {
+                    const fieldKey = target.dataset.fieldKey;
+                    const estId = state.viewingEstablishmentId;
+                    state.viewingEstablishmentId = null;
+                    viewModal.classList.add('hidden');
+                    state.editingEstablishmentId = estId;
+                    renderEditModal(fieldKey);
+                    return;
+                }
+
+                if (action === 'toggle-collapse') {
+                    const fieldKey = target.dataset.fieldKey;
+                    const establishment = state.establishments.find(est => est.id === state.viewingEstablishmentId);
+                    if (establishment) {
+                        if (!establishment.collapsed) establishment.collapsed = []; 
+                        const index = establishment.collapsed.indexOf(fieldKey);
+                        if (index > -1) {
+                            establishment.collapsed.splice(index, 1); 
+                        } else {
+                            establishment.collapsed.push(fieldKey); 
+                        }
+                        saveState();
+                        renderViewModal(); 
+                    }
+                    return;
+                }
+
+                if (action === 'close-view-modal') {
+                    state.viewingEstablishmentId = null;
+                    viewModal.classList.add('hidden'); 
+                    return;
+                }
+                if (action === 'copy-bracketed' || action === 'copy-single') {
+                    const value = target.dataset.value;
+                    if(value) {
+                        const copyMsg = value.startsWith('data:image/') ? 'Image data copied' : 'Value copied to clipboard';
+                        copyToClipboard(value, copyMsg);
+                    }
+                    return;
+                }
+                if (action === 'create-filter') {
+                    state.editingFilterId = null;
+                    renderFilterModal(); 
+                    return;
+                }
+                if (action === 'edit-filter') {
+                    state.editingFilterId = target.dataset.filterId;
+                    renderFilterModal();
+                    return;
+                }
+                if (action === 'select-filter') {
+                    const filterId = target.dataset.filterId;
+                    state.activeFilterId = filterId;
+                    saveState();
+                    renderViewModal();
+                    return;
+                }
+                 if (action === 'delete-filter') {
+                    const filterId = target.dataset.filterId;
+                    const filterToDelete = state.savedFilters.find(f => f.id === filterId);
+                    if (filterToDelete) {
+                        showConfirmModal(
+                            "Confirm Filter Deletion",
+                            `Delete filter view "${filterToDelete.name}"?`,
+                            () => {
+                                state.savedFilters = state.savedFilters.filter(f => f.id !== filterId);
+                                if (state.activeFilterId === filterId) {
+                                    state.activeFilterId = null;
+                                }
+                                saveState();
+                                renderViewModal();
+                                showToast(`FILTER DELETED`);
+                            }
+                        );
+                    }
+                    return;
+                }
+                if (action === 'clear-filter') {
+                    state.activeFilterId = null;
+                    saveState();
+                    renderViewModal();
+                    return;
+                }
+
+                const id = target.dataset.id || state.viewingEstablishmentId;
+                const establishment = state.establishments.find(est => est.id === id);
+                if (!establishment) return;
+
+                if (action === 'delete') {
+                    showConfirmModal(
+                        "Confirm Record Deletion",
+                        `Delete record "${establishment.name}" permanently?`,
+                        () => {
+                            state.establishments = state.establishments.filter(est => est.id !== id);
+                            saveState();
+                            state.viewingEstablishmentId = null;
+                            viewModal.classList.add('hidden');
+                            render();
+                            showToast(`RECORD DELETED`);
+                        }
+                    );
+                } else if (action === 'open-modal') {
+                    state.viewingEstablishmentId = null;
+                    viewModal.classList.add('hidden');
+                    state.editingEstablishmentId = id;
+                    renderEditModal();
+                } else if (action === 'copy-all') {
+                    const parsedFields = parseCustomFields(state.customFields);
+                    const activeFilter = state.savedFilters.find(f => f.id === state.activeFilterId);
+                    const fieldsToCopy = activeFilter ? activeFilter.fields : null;
+                    const detailsText = buildCopyText(parsedFields, establishment, 0, fieldsToCopy);
+                    const textToCopy = `// RECORD REPORT - ${establishment.name.toUpperCase()}\n${detailsText.trim()}`;
+                    copyToClipboard(textToCopy, `Record details copied!`);
+                } else if (action === 'duplicate') {
+                    const originalEstablishment = state.establishments.find(est => est.id === id);
+                    if (originalEstablishment) {
+                        const newEstablishment = JSON.parse(JSON.stringify(originalEstablishment)); 
+                        newEstablishment.id = generateId();
+                        newEstablishment.name = `${originalEstablishment.name} (COPY)`;
+                        state.establishments.push(newEstablishment);
+                        saveState();
+                        showToast(`RECORD DUPLICATED`);
+                        viewModal.classList.add('hidden');
+                        state.viewingEstablishmentId = null;
+                        render();
+                    }
+                }
+            });
+
+            filterModal.addEventListener('click', (e) => {
+                const target = e.target.closest('[data-action="close-filter-modal"]');
+                if (target || e.target === filterModal) {
+                    filterModal.classList.add('hidden');
+                    state.editingFilterId = null; 
+                }
+            });
+
+            filterForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const nameInput = document.getElementById('filter-name-input');
+                const filterName = nameInput.value.trim().toUpperCase();
+
+                if (!filterName) {
+                    showToast('PLEASE ENTER A VIEW NAME');
+                    nameInput.focus();
+                    return;
+                }
+                
+                const isNameTaken = state.savedFilters.some(f => 
+                    f.name.toLowerCase() === filterName.toLowerCase() && f.id !== state.editingFilterId
+                );
+
+                if (isNameTaken) {
+                    showToast(`VIEW NAME ALREADY EXISTS`);
+                    return;
+                }
+
+                const formData = new FormData(filterForm);
+                const selectedFields = [];
+                for (const key of formData.keys()) {
+                     selectedFields.push(key);
+                }
+                
+                if (selectedFields.length === 0) {
+                    showToast('SELECT AT LEAST ONE FIELD');
+                    return;
+                }
+
+                const isEditing = !!state.editingFilterId;
+
+                if (isEditing) {
+                    const filterToUpdate = state.savedFilters.find(f => f.id === state.editingFilterId);
+                    if (filterToUpdate) {
+                        filterToUpdate.name = filterName;
+                        filterToUpdate.fields = selectedFields;
+                        showToast(`FILTER VIEW UPDATED`);
+                    }
+                } else {
+                    const newFilter = {
+                        id: generateId(),
+                        name: filterName,
+                        fields: selectedFields,
+                    };
+                    state.savedFilters.push(newFilter);
+                    if (state.viewingEstablishmentId) {
+                       state.activeFilterId = newFilter.id;
+                    }
+                    showToast(`FILTER VIEW SAVED`);
+                }
+
+                state.editingFilterId = null;
+                saveState();
+                filterModal.classList.add('hidden');
+                
+                if (state.viewingEstablishmentId) {
+                    renderViewModal();
+                }
+            });
+
+            // --- Drag and Drop Logic for Schema Field Reordering ---
+            let draggedElement = null;
+
+            customFieldsList.addEventListener('dragstart', (e) => {
+                const li = e.target.closest('li');
+                if (!li) return;
+                draggedElement = li;
+                setTimeout(() => { li.classList.add('opacity-50'); }, 0);
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            
+            customFieldsList.addEventListener('dragend', (e) => {
+                if (draggedElement) draggedElement.classList.remove('opacity-50');
+                draggedElement = null;
+                
+                const newOrderKeys = [...customFieldsList.querySelectorAll('li')].map(li => li.dataset.field);
+                const reorderedFields = [];
+                newOrderKeys.forEach(key => {
+                    const found = state.customFields.find(f => f.key === key);
+                    if (found) reorderedFields.push(found);
+                });
+
+                state.customFields = reorderedFields;
+                saveState();
+                render();
+                showToast("SCHEMA ORDER UPDATED");
+            });
+
+            customFieldsList.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const targetLi = e.target.closest('li');
+                if (targetLi && targetLi !== draggedElement) {
+                    const rect = targetLi.getBoundingClientRect();
+                    const next = (e.clientY - rect.top) / rect.height > 0.5;
+                    customFieldsList.insertBefore(draggedElement, next ? targetLi.nextSibling : targetLi);
+                }
+            });
+
+            // --- Import / Export Logic ---
+            function performImportMerge(payload) {
+                const importedEstablishments = payload.establishments || [];
+                const importedFields = payload.fieldOrder || [];
+                const importedFilters = payload.savedFilters || [];
+
+                if (!Array.isArray(importedEstablishments)) throw new Error("Invalid format.");
+                if (!Array.isArray(importedFields)) throw new Error("Invalid format.");
+                if (!Array.isArray(importedFilters)) throw new Error("Invalid format.");
+
+                const existingNames = new Set(state.establishments.map(e => e.name.toLowerCase()));
+                let importedEstCount = 0;
+
+                importedEstablishments.forEach(item => {
+                     if (item.name && item.details && typeof item.details === 'object') {
+                        if (!existingNames.has(item.name.toLowerCase())) {
+                            state.establishments.push({
+                                id: generateId(), 
+                                name: item.name, 
+                                details: item.details,
+                                collapsed: item.collapsed || [] 
+                            });
+                            existingNames.add(item.name.toLowerCase());
+                            importedEstCount++;
+                        }
+                     }
+                });
+                
+                const existingKeys = new Set(state.customFields.map(f => f.key));
+                importedFields.forEach(fieldFromFile => {
+                    const key = (typeof fieldFromFile === 'string') ? fieldFromFile : fieldFromFile.key;
+                    if (key && !existingKeys.has(key)) {
+                        const type = (typeof fieldFromFile === 'string') ? 'text' : (fieldFromFile.type || 'text');
+                        state.customFields.push({ key, type });
+                        existingKeys.add(key);
+                    }
+                });
+
+                saveState();
+                render();
+                showToast(`SUCCESS: ${importedEstCount} RECORDS IMPORTED`);
+            }
+
+            function performImportReplace(payload) {
+                const importedEstablishments = payload.establishments || [];
+                const importedFields = payload.fieldOrder || [];
+                const importedFilters = payload.savedFilters || [];
+
+                state.establishments = [];
+                state.customFields = [];
+                state.savedFilters = [];
+                state.activeFilterId = null; 
+
+                let importedEstCount = 0;
+                importedEstablishments.forEach(item => {
+                     if (item.name && item.details && typeof item.details === 'object') {
+                        state.establishments.push({
+                            id: generateId(), 
+                            name: item.name, 
+                            details: item.details,
+                            collapsed: item.collapsed || [] 
+                        });
+                        importedEstCount++;
+                     }
+                });
+                
+                importedFields.forEach(fieldFromFile => {
+                    const key = (typeof fieldFromFile === 'string') ? fieldFromFile : fieldFromFile.key;
+                    if (key) {
+                        const type = (typeof fieldFromFile === 'string') ? 'text' : (fieldFromFile.type || 'text');
+                        state.customFields.push({ key, type });
+                    }
+                });
+                
+                saveState();
+                render();
+                showToast(`DATABASE REPLACED: ${importedEstCount} RECORDS`);
+            }
+
+            const importBtn = document.getElementById('import-btn');
+            const exportBtn = document.getElementById('export-btn');
+            const fileInput = document.getElementById('import-file-input');
+            
+            importBtn.addEventListener('click', () => { fileInput.click(); });
+            
+            fileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                fileToImport = file;
+                fileInputElement = event.target;
+                
+                document.getElementById('import-filename').textContent = file.name;
+                importConfirmModal.classList.remove('hidden');
+            });
+
+            importConfirmModal.addEventListener('click', (e) => {
+                const action = e.target.id;
+                
+                if (action === 'import-action-cancel' || e.target === importConfirmModal) {
+                    if (fileInputElement) fileInputElement.value = null;
+                    fileToImport = null;
+                    fileInputElement = null;
+                    importConfirmModal.classList.add('hidden');
+                    return;
+                }
+
+                if (action === 'import-action-merge' || action === 'import-action-replace') {
+                    if (!fileToImport) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const importedPayload = JSON.parse(e.target.result);
+                            if (action === 'import-action-merge') {
+                                performImportMerge(importedPayload);
+                            } else if (action === 'import-action-replace') {
+                                performImportReplace(importedPayload);
+                            }
+                        } catch (error) {
+                             showToast(`IMPORT ERROR: ${error.message}`);
+                        } finally {
+                            if (fileInputElement) fileInputElement.value = null;
+                            fileToImport = null;
+                            fileInputElement = null;
+                            importConfirmModal.classList.add('hidden');
+                        }
+                    };
+                    reader.readAsText(fileToImport);
+                }
+            });
+
+            exportBtn.addEventListener('click', () => {
+                if (state.establishments.length === 0 && state.customFields.length === 0) {
+                    showToast('No data to export!');
+                    return;
+                }
+
+                const definedFieldKeys = new Set(state.customFields.map(f => f.key));
+
+                const exportData = {
+                    fieldOrder: state.customFields,
+                    establishments: state.establishments.map(est => {
+                        const cleanDetails = {};
+                        if (est.details) {
+                            Object.keys(est.details).forEach(detailKey => {
+                                if (definedFieldKeys.has(detailKey)) {
+                                    cleanDetails[detailKey] = est.details[detailKey];
+                                }
+                            });
+                        }
+                        return { 
+                            name: est.name, 
+                            details: cleanDetails, 
+                            collapsed: est.collapsed || [] 
+                        };
+                    }),
+                    savedFilters: state.savedFilters,
+                };
+
+                const jsonString = JSON.stringify(exportData, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'enterprise_data_export.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast(`DATA EXPORTED`);
+            });
+
+            // --- INITIALIZATION ---
+            await loadState();
+            render();
+        });
+    </script>
+</body>
+</html>
