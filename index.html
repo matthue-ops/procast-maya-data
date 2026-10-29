@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PROJECT MAYA - PROCAST // BUSINESS TERMINAL</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- SheetJS Styling Library for Excel Export Styling -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -136,7 +138,7 @@
                     </h1>
                 </div>
                 <p class="text-xs mt-1 uppercase tracking-wider font-semibold">
-                    Enterprise Data Management Console // Local Storage: <span class="text-blue-600 font-bold">SECURE</span>
+                    Enterprise Data Management Console // Cloud Storage: <span class="text-emerald-500 font-bold">SUPABASE ACTIVE</span>
                 </p>
             </div>
             
@@ -462,7 +464,12 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // --- SUPABASE CONFIGURATION ---
+            const SUPABASE_URL = 'https://jkrnznmzcatlyhvihuua.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imprcm56bm16Y2F0bHlodmlodXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI5NDU0NjgsImV4cCI6MjEwODUyMTQ2OH0.P0cOhQmtjejG5r34ypWuSmkTEJd2z0PPYbpbvJz6hBk';
+            const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
             // --- STATE MANAGEMENT ---
             let state = {
                 customFields: [],
@@ -488,6 +495,76 @@
             // --- LOCAL STORAGE KEY ---
             const APP_STORAGE_KEY = 'enterpriseDataManager';
             const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            // --- LOAD STATE FROM SUPABASE CLOUD ---
+            async function loadState() {
+                try {
+                    const { data, error } = await _supabase
+                        .from('procast_state')
+                        .select('payload')
+                        .eq('id', 'main_data')
+                        .single();
+
+                    if (data && data.payload) {
+                        state = data.payload;
+                    } else {
+                        // Fallback to local storage if cloud is empty
+                        const savedState = localStorage.getItem(APP_STORAGE_KEY);
+                        if (savedState) state = JSON.parse(savedState);
+                    }
+                } catch (err) {
+                    console.error('Cloud load failed, using local storage fallback:', err);
+                    const savedState = localStorage.getItem(APP_STORAGE_KEY);
+                    if (savedState) state = JSON.parse(savedState);
+                }
+
+                if (state.customFields && state.customFields.length > 0 && typeof state.customFields[0] === 'string') {
+                    state.customFields = state.customFields.map(fieldKey => ({
+                        key: fieldKey,
+                        type: 'text'
+                    }));
+                    saveState();
+                }
+                
+                if (typeof state.savedFilters === 'undefined') state.savedFilters = [];
+                if (typeof state.activeFilterId === 'undefined') state.activeFilterId = null;
+                if (typeof state.editingFilterId === 'undefined') state.editingFilterId = null;
+                if (typeof state.isListExpanded === 'undefined') state.isListExpanded = false;
+                if (typeof state.isDarkMode === 'undefined') state.isDarkMode = true;
+                if (typeof state.aftersalesHeaders === 'undefined') state.aftersalesHeaders = [];
+                if (typeof state.aftersalesRecords === 'undefined') state.aftersalesRecords = [];
+                if (typeof state.aftersalesSearchTerm === 'undefined') state.aftersalesSearchTerm = '';
+                if (typeof state.activeTab === 'undefined') state.activeTab = 'collection';
+
+                setTheme(state.isDarkMode);
+                switchTab(state.activeTab);
+
+                if (state.establishments) {
+                    state.establishments.forEach(est => {
+                        if (typeof est.collapsed === 'undefined') {
+                            est.collapsed = [];
+                        }
+                    });
+                }
+                render();
+            }
+
+            // --- SAVE STATE TO SUPABASE CLOUD ---
+            async function saveState() {
+                localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state));
+
+                try {
+                    const { error } = await _supabase
+                        .from('procast_state')
+                        .upsert({ id: 'main_data', payload: state, updated_at: new Date() });
+
+                    if (error) {
+                        console.error('Error syncing to Supabase:', error);
+                    }
+                } catch (err) {
+                    console.error('Supabase save exception:', err);
+                }
+            }
 
             // --- VIEW TAB SWITCHER ---
             const tabCollection = document.getElementById('tab-collection');
@@ -589,65 +666,6 @@
                 document.getElementById('confirm-modal').classList.add('hidden');
                 activeConfirmCallback = null;
             });
-
-            function loadState() {
-                const savedState = localStorage.getItem(APP_STORAGE_KEY);
-                if (savedState) {
-                    state = JSON.parse(savedState);
-                    
-                    if (state.customFields && state.customFields.length > 0 && typeof state.customFields[0] === 'string') {
-                        state.customFields = state.customFields.map(fieldKey => ({
-                            key: fieldKey,
-                            type: 'text'
-                        }));
-                        saveState();
-                    }
-                    
-                    if (typeof state.savedFilters === 'undefined') state.savedFilters = [];
-                    if (typeof state.activeFilterId === 'undefined') state.activeFilterId = null;
-                    if (typeof state.editingFilterId === 'undefined') state.editingFilterId = null;
-                    if (typeof state.isListExpanded === 'undefined') state.isListExpanded = false;
-                    if (typeof state.isDarkMode === 'undefined') state.isDarkMode = true;
-                    if (typeof state.aftersalesHeaders === 'undefined') state.aftersalesHeaders = [];
-                    if (typeof state.aftersalesRecords === 'undefined') state.aftersalesRecords = [];
-                    if (typeof state.aftersalesSearchTerm === 'undefined') state.aftersalesSearchTerm = '';
-                    if (typeof state.activeTab === 'undefined') state.activeTab = 'collection';
-
-                    setTheme(state.isDarkMode);
-                    switchTab(state.activeTab);
-
-                    if (state.establishments) {
-                        state.establishments.forEach(est => {
-                            if (typeof est.collapsed === 'undefined') {
-                                est.collapsed = [];
-                            }
-                        });
-                    }
-                } else {
-                    state = {
-                        customFields: [],
-                        establishments: [],
-                        searchTerm: '',
-                        editingEstablishmentId: null,
-                        viewingEstablishmentId: null,
-                        savedFilters: [],
-                        activeFilterId: null,
-                        editingFilterId: null,
-                        isListExpanded: false,
-                        isDarkMode: true,
-                        aftersalesHeaders: [],
-                        aftersalesRecords: [],
-                        aftersalesSearchTerm: '',
-                        activeTab: 'collection'
-                    };
-                    setTheme(true);
-                    switchTab('collection');
-                }
-            }
-
-            function saveState() {
-                localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state));
-            }
 
             // --- DOM ELEMENTS ---
             const customFieldsList = document.getElementById('custom-fields-list');
@@ -2714,8 +2732,7 @@
             });
 
             // --- INITIALIZATION ---
-            loadState();
-            render();
+            await loadState();
         });
     </script>
 </body>
