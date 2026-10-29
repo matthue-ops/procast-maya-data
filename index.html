@@ -15,6 +15,7 @@
         body { 
             font-family: 'Inter', sans-serif; 
             transition: background-color 0.3s ease, color 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
         }
         /* Business Day Mode (High Contrast Solid Black Text) */
         body.light-mode {
@@ -86,8 +87,8 @@
 
         /* Custom Scrollbar */
         ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+            width: 5px;
+            height: 5px;
         }
         ::-webkit-scrollbar-track {
             background: transparent;
@@ -126,30 +127,30 @@
 </head>
 <body class="dark-mode min-h-screen relative overflow-x-hidden">
 
-    <div id="app" class="relative p-4 sm:p-8 max-w-7xl mx-auto space-y-6 z-10">
+    <div id="app" class="relative p-3 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6 z-10">
         
         <!-- Corporate Header -->
-        <header class="corporate-panel p-6 rounded-xl border-l-4 border-l-blue-600 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <header class="corporate-panel p-4 sm:p-6 rounded-xl border-l-4 border-l-blue-600 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-                <div class="flex items-center gap-3">
-                    <span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>
-                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight uppercase">
+                <div class="flex items-center gap-2.5 sm:gap-3">
+                    <span class="inline-block w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-blue-600"></span>
+                    <h1 class="text-lg sm:text-xl md:text-2xl font-bold tracking-tight uppercase">
                         Project Maya - Procast
                     </h1>
                 </div>
-                <p class="text-xs mt-1 uppercase tracking-wider font-semibold">
+                <p class="text-[10px] sm:text-xs mt-1 uppercase tracking-wider font-semibold">
                     Enterprise Data Management Console // Cloud Storage: <span class="text-emerald-500 font-bold">SUPABASE ACTIVE</span>
                 </p>
             </div>
             
-            <!-- Controls, View Tabs & Theme Toggle (Requirement 7: proportional and even in width/layout) -->
-            <div class="flex flex-wrap items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+            <!-- Controls, View Tabs & Theme Toggle -->
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-between md:justify-end">
                 <!-- View Switcher Tabs -->
                 <div class="grid grid-cols-2 bg-slate-900/50 p-1 rounded-lg border border-slate-700 w-full sm:w-80">
-                    <button id="tab-collection" class="px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition bg-blue-600 text-white text-center">
+                    <button id="tab-collection" class="px-3 py-2 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider transition bg-blue-600 text-white text-center">
                         Data Collection
                     </button>
-                    <button id="tab-aftersales" class="px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition text-slate-400 hover:text-white text-center">
+                    <button id="tab-aftersales" class="px-3 py-2 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider transition text-slate-400 hover:text-white text-center">
                         Aftersales Rechecking
                     </button>
                 </div>
@@ -166,22 +167,22 @@
         </header>
 
         <!-- ================= VIEW 1: DATA COLLECTION MODULE ================= -->
-        <div id="view-collection-container" class="space-y-6">
+        <div id="view-collection-container" class="space-y-4 sm:space-y-6">
             <!-- STEP 1: SAVED ESTABLISHMENTS PANEL -->
-            <section class="corporate-panel p-6 rounded-xl transition-all duration-300">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b pb-4 gap-4">
-                    <div class="flex items-center gap-3">
+            <section class="corporate-panel p-4 sm:p-6 rounded-xl transition-all duration-300">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 border-b pb-3 sm:pb-4 gap-3">
+                    <div class="flex items-center gap-2.5 sm:gap-3">
                         <div class="p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-600">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                         </div>
-                        <h2 id="establishments-header" class="text-base font-bold tracking-wide uppercase">
+                        <h2 id="establishments-header" class="text-sm sm:text-base font-bold tracking-wide uppercase">
                             1. Saved Records (0)
                         </h2>
                     </div>
                 </div>
                 
                 <!-- Search & Toggle Bar -->
-                <div class="flex flex-col sm:flex-row gap-3 mb-6">
+                <div class="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-6">
                     <div class="relative flex-grow">
                         <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -190,12 +191,12 @@
                             id="search-input"
                             type="text"
                             placeholder="SEARCH RECORDS OR SPECIFICATIONS..."
-                            class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/30 uppercase tracking-wider transition-colors duration-200"
+                            class="w-full pl-10 pr-4 py-2.5 sm:py-3 border rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/30 uppercase tracking-wider transition-colors duration-200"
                         />
                     </div>
                     <button
                         id="toggle-list-btn"
-                        class="px-5 py-2.5 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition duration-150 shadow-sm text-xs whitespace-nowrap flex items-center justify-center gap-2 uppercase tracking-wider"
+                        class="px-4 sm:px-5 py-2.5 sm:py-3 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition duration-150 shadow-sm text-xs whitespace-nowrap flex items-center justify-center gap-2 uppercase tracking-wider"
                     >
                         <span id="toggle-list-icon">📂</span>
                         <span id="toggle-list-text">Show All</span>
@@ -208,17 +209,17 @@
                 </div>
             </section>
 
-            <!-- Two-column or stacked layout for Add and Structure tools (Requirement 5: Collapsible) -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Two-column or stacked layout for Add and Structure tools -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                 
                 <!-- STEP 2: ADD NEW ESTABLISHMENT -->
-                <section class="corporate-panel p-6 rounded-xl h-fit md:col-span-1">
-                    <div class="flex items-center justify-between mb-4 border-b pb-3 cursor-pointer select-none" data-action="toggle-section" data-target="create-record-body">
-                        <div class="flex items-center gap-3">
+                <section class="corporate-panel p-4 sm:p-6 rounded-xl h-fit lg:col-span-1">
+                    <div class="flex items-center justify-between mb-3 sm:mb-4 border-b pb-3 cursor-pointer select-none" data-action="toggle-section" data-target="create-record-body">
+                        <div class="flex items-center gap-2.5 sm:gap-3">
                             <div class="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-600">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             </div>
-                            <h2 class="text-sm font-bold tracking-wide uppercase">
+                            <h2 class="text-xs sm:text-sm font-bold tracking-wide uppercase">
                                 2. Create Record
                             </h2>
                         </div>
@@ -226,7 +227,7 @@
                     </div>
                     
                     <div id="create-record-body" class="space-y-4">
-                        <form id="add-establishment-form" class="flex flex-col space-y-4">
+                        <form id="add-establishment-form" class="flex flex-col space-y-3 sm:space-y-4">
                             <div>
                                 <label for="new-establishment-name" class="block text-[11px] font-bold tracking-wider uppercase mb-1">Record Identifier</label>
                                 <input
@@ -234,12 +235,12 @@
                                     type="text"
                                     placeholder="e.g. CLIENT ABC"
                                     required
-                                    class="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-xs uppercase font-bold"
+                                    class="w-full p-2.5 sm:p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-xs uppercase font-bold"
                                 />
                             </div>
                             <button
                                 type="submit"
-                                class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-all duration-150 text-xs uppercase tracking-wider"
+                                class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-all duration-150 text-xs uppercase tracking-wider"
                             >
                                 Save Record
                             </button>
@@ -248,28 +249,28 @@
                 </section>
 
                 <!-- STEP 3: DEFINE DATA STRUCTURE -->
-                <section class="corporate-panel p-6 rounded-xl h-fit md:col-span-2">
-                    <div class="flex items-center justify-between mb-4 border-b pb-3 cursor-pointer select-none" data-action="toggle-section" data-target="schema-body">
-                        <div class="flex items-center gap-3">
+                <section class="corporate-panel p-4 sm:p-6 rounded-xl h-fit lg:col-span-2">
+                    <div class="flex items-center justify-between mb-3 sm:mb-4 border-b pb-3 cursor-pointer select-none" data-action="toggle-section" data-target="schema-body">
+                        <div class="flex items-center gap-2.5 sm:gap-3">
                             <div class="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-600">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a2 2 0 002 2h3a2 2 0 012 2v3a2 2 0 002 2v6a2 2 0 01-2 2h-3a2 2 0 00-2-2v-1a2 2 0 00-2-2H9a2 2 0 00-2 2v1a2 2 0 01-2 2H2a2 2 0 01-2-2v-6a2 2 0 002-2v-3a2 2 0 012-2h3a2 2 0 002-2V4z"></path></svg>
                             </div>
-                            <h2 class="text-sm font-bold tracking-wide uppercase">
-                                3. Field Schema Architecture (Drag to Reorder)
+                            <h2 class="text-xs sm:text-sm font-bold tracking-wide uppercase">
+                                3. Field Schema Architecture
                             </h2>
                         </div>
                         <svg id="schema-body-icon" class="w-4 h-4 transform transition-transform duration-200 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </div>
 
                     <div id="schema-body" class="space-y-4">
-                        <form id="add-field-form" class="flex flex-wrap sm:flex-nowrap items-center gap-2 mb-4">
+                        <form id="add-field-form" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 mb-4">
                             <input
                                 id="new-field-name"
                                 type="text"
                                 placeholder="ADD MATRIX FIELD..."
-                                class="flex-grow w-full sm:w-auto p-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-xs uppercase font-bold"
+                                class="flex-grow p-2.5 sm:p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-xs uppercase font-bold"
                             />
-                            <select id="new-field-type" class="p-2.5 border rounded-lg focus:outline-none text-xs uppercase font-bold w-full sm:w-auto">
+                            <select id="new-field-type" class="p-2.5 sm:p-3 border rounded-lg focus:outline-none text-xs uppercase font-bold">
                                 <option value="text">DATA STRING</option>
                                 <option value="date">DATE</option>
                                 <option value="checkbox">BOOLEAN</option>
@@ -277,13 +278,13 @@
                             </select>
                             <button
                                 type="submit"
-                                class="px-5 py-2.5 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition-all duration-150 text-xs uppercase tracking-wider w-full sm:w-auto"
+                                class="px-5 py-3 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition-all duration-150 text-xs uppercase tracking-wider whitespace-nowrap"
                             >
                                 Add Field
                             </button>
                         </form>
 
-                        <div class="max-h-96 overflow-y-auto pr-2">
+                        <div class="max-h-80 sm:max-h-96 overflow-y-auto pr-1">
                             <ul id="custom-fields-list" class="space-y-2">
                                 <!-- Custom fields will be rendered here by JavaScript -->
                             </ul>
@@ -293,47 +294,47 @@
 
             </div>
 
-            <!-- Requirement 6: Move import/export data buttons to the bottom of the data collection view -->
-            <section class="corporate-panel p-4 rounded-xl flex flex-wrap items-center justify-between gap-4">
+            <!-- Migration & Backup Management -->
+            <section class="corporate-panel p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
                 <div class="flex items-center gap-2">
                     <span class="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
                     <span class="text-xs uppercase font-bold tracking-wider">Data Migration & Backup Management</span>
                 </div>
-                <div class="flex items-center gap-3 w-full sm:w-auto">
+                <div class="flex items-center gap-2.5 w-full sm:w-auto">
                     <input type="file" id="import-file-input" accept=".json" class="hidden" />
                     <button
                         id="import-btn"
-                        class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition duration-150 shadow-sm text-xs uppercase tracking-wider"
+                        class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition duration-150 shadow-sm text-xs uppercase tracking-wider"
                     >
                         <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                        Import Data
+                        Import
                     </button>
                     <button
                         id="export-btn"
-                        class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition duration-150 shadow-sm text-xs uppercase tracking-wider"
+                        class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition duration-150 shadow-sm text-xs uppercase tracking-wider"
                     >
                         <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        Export Data
+                        Export
                     </button>
                 </div>
             </section>
         </div>
 
         <!-- ================= VIEW 2: AFTERSALES RECHECKING MODULE ================= -->
-        <div id="view-aftersales-container" class="space-y-6 hidden">
-            <section class="corporate-panel p-6 rounded-xl">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b pb-4 gap-4">
-                    <div class="flex items-center gap-3">
+        <div id="view-aftersales-container" class="space-y-4 sm:space-y-6 hidden">
+            <section class="corporate-panel p-4 sm:p-6 rounded-xl">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 border-b pb-4 gap-3">
+                    <div class="flex items-center gap-2.5 sm:gap-3">
                         <div class="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         </div>
                         <div>
-                            <h2 class="text-base font-bold tracking-wide uppercase">Aftersales Rechecking Console</h2>
-                            <p class="text-xs uppercase font-semibold mt-0.5">Dynamic Column Ingestion & Highlight Export</p>
+                            <h2 class="text-sm sm:text-base font-bold tracking-wide uppercase">Aftersales Rechecking Console</h2>
+                            <p class="text-[10px] sm:text-xs uppercase font-semibold mt-0.5">Dynamic Column Ingestion & Highlight Export</p>
                         </div>
                     </div>
                     
-                    <!-- Requirement 3: Upload, export, and delete as icon-only logo buttons with tooltips/titles -->
+                    <!-- Upload, export, and delete as icon-only logo buttons with tooltips -->
                     <div class="flex items-center gap-2">
                         <input type="file" id="aftersales-file-input" accept=".xlsx, .xls" class="hidden" />
                         <button
@@ -361,7 +362,7 @@
                 </div>
 
                 <!-- Search & Filters Bar for Aftersales -->
-                <div class="flex flex-col sm:flex-row gap-3 mb-6">
+                <div class="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-6">
                     <div class="relative flex-grow">
                         <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -369,18 +370,18 @@
                         <input
                             id="aftersales-search-input"
                             type="text"
-                            placeholder="SEARCH ANY FIELD OR SPECIFICATION IN AFTERSALES RECORDS..."
-                            class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/30 uppercase tracking-wider transition-colors duration-200"
+                            placeholder="SEARCH AFTERSALES RECORDS..."
+                            class="w-full pl-10 pr-4 py-2.5 sm:py-3 border rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/30 uppercase tracking-wider transition-colors duration-200"
                         />
                     </div>
-                    <div id="aftersales-stats" class="px-4 py-2.5 corporate-panel-inner border rounded-lg flex items-center text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+                    <div id="aftersales-stats" class="px-4 py-2.5 sm:py-3 corporate-panel-inner border rounded-lg flex items-center justify-center text-xs font-bold uppercase tracking-wider whitespace-nowrap">
                         Records Loaded: 0
                     </div>
                 </div>
 
                 <!-- Aftersales Cards Container -->
                 <div id="aftersales-cards-container">
-                    <div class="corporate-panel-inner border-2 border-dashed rounded-xl p-10 text-center">
+                    <div class="corporate-panel-inner border-2 border-dashed rounded-xl p-8 sm:p-10 text-center">
                         <p class="uppercase tracking-wider text-xs font-bold text-slate-400">NO AFTERSALES REPORT LOADED</p>
                         <p class="text-[11px] uppercase mt-1 font-semibold text-slate-500">Click the upload icon above to ingest row 1 headers & record columns.</p>
                     </div>
@@ -389,20 +390,20 @@
         </div>
 
         <!-- Toast Notifications -->
-        <div id="copy-toast" class="fixed bottom-6 right-6 corporate-panel border border-blue-500 p-4 rounded-xl shadow-2xl transition-all duration-300 z-50 opacity-0 pointer-events-none flex items-center gap-3">
+        <div id="copy-toast" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 corporate-panel border border-blue-500 p-3.5 sm:p-4 rounded-xl shadow-2xl transition-all duration-300 z-50 opacity-0 pointer-events-none flex items-center gap-3">
             <span class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-ping"></span>
-            <p class="text-xs font-bold tracking-wider uppercase" id="toast-message-span">
+            <p class="text-[11px] sm:text-xs font-bold tracking-wider uppercase" id="toast-message-span">
                 ACTION COMPLETED
             </p>
         </div>
 
         <!-- EDIT DETAILS MODAL -->
-        <div id="details-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-            <div class="corporate-panel rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 relative">
-                <div class="absolute top-0 right-0 p-3">
-                    <button data-action="close-modal" class="hover:text-blue-600 transition-transform text-2xl font-bold leading-none">&times;</button>
+        <div id="details-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 hidden">
+            <div class="corporate-panel rounded-xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto p-4 sm:p-6 relative">
+                <div class="absolute top-3 right-3 sm:top-4 sm:right-4 p-1 z-10">
+                    <button data-action="close-modal" class="hover:text-blue-600 transition-transform text-2xl font-bold leading-none p-1">&times;</button>
                 </div>
-                <h3 id="modal-title" class="text-base font-bold mb-4 border-b pb-2 uppercase tracking-wider">
+                <h3 id="modal-title" class="text-sm sm:text-base font-bold mb-3 sm:mb-4 border-b pb-2 uppercase tracking-wider pr-8">
                     Configure Record Details
                 </h3>
                 <form id="details-form" class="space-y-4">
@@ -412,27 +413,27 @@
         </div>
 
         <!-- VIEW DETAILS MODAL -->
-        <div id="view-details-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-            <div id="view-details-modal-content" class="corporate-panel rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+        <div id="view-details-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 hidden">
+            <div id="view-details-modal-content" class="corporate-panel rounded-xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto p-4 sm:p-6 relative">
                 <!-- View Modal content will be rendered by JS -->
             </div>
         </div>
 
-        <!-- AFTERSALES RECORD EXPANDED DETAIL MODAL (Requirement 1: customized filter feature just like in data collection) -->
-        <div id="aftersales-details-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-            <div id="aftersales-details-modal-content" class="corporate-panel rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative">
+        <!-- AFTERSALES RECORD EXPANDED DETAIL MODAL -->
+        <div id="aftersales-details-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 hidden">
+            <div id="aftersales-details-modal-content" class="corporate-panel rounded-xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 relative">
                 <!-- Aftersales detailed record expanded content will be rendered by JS -->
             </div>
         </div>
         
         <!-- FILTER/CUSTOM VIEW MODAL -->
-        <div id="filter-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-            <div class="corporate-panel rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col p-6">
-                <div class="flex justify-between items-center border-b pb-3 mb-4">
-                    <h3 class="text-base font-bold uppercase tracking-wider">Construct Filter View</h3>
-                    <button data-action="close-filter-modal" class="hover:text-blue-600 transition text-2xl font-bold leading-none">&times;</button>
+        <div id="filter-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 hidden">
+            <div class="corporate-panel rounded-xl shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col p-4 sm:p-6 relative">
+                <div class="flex justify-between items-center border-b pb-3 mb-3">
+                    <h3 class="text-sm sm:text-base font-bold uppercase tracking-wider">Construct Filter View</h3>
+                    <button data-action="close-filter-modal" class="hover:text-blue-600 transition text-2xl font-bold leading-none p-1">&times;</button>
                 </div>
-                <div class="mb-4">
+                <div class="mb-3">
                     <label for="filter-name-input" class="block text-xs font-bold uppercase mb-1.5">Filter View Name</label>
                     <input 
                         id="filter-name-input" 
@@ -442,37 +443,37 @@
                         class="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 uppercase text-xs font-bold"
                     />
                 </div>
-                <form id="filter-form" class="flex-grow overflow-y-auto pr-2 space-y-2">
+                <form id="filter-form" class="flex-grow overflow-y-auto pr-1 space-y-2 max-h-56 sm:max-h-64">
                     <!-- Checkbox list of fields will be rendered here -->
                 </form>
-                <div class="flex justify-end space-x-3 pt-4 border-t mt-4">
-                    <button type="button" data-action="close-filter-modal" class="px-4 py-2 border rounded-lg uppercase text-xs font-bold">Cancel</button>
-                    <button type="submit" form="filter-form" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm uppercase text-xs">Save Filter</button>
+                <div class="flex justify-end space-x-3 pt-3 border-t mt-3">
+                    <button type="button" data-action="close-filter-modal" class="px-4 py-2.5 border rounded-lg uppercase text-xs font-bold">Cancel</button>
+                    <button type="submit" form="filter-form" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm uppercase text-xs">Save Filter</button>
                 </div>
             </div>
         </div>
 
         <!-- IMPORT OVERWRITE CONFIRMATION MODAL -->
-        <div id="import-confirm-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-            <div class="corporate-panel rounded-xl shadow-2xl w-full max-w-md p-6">
-                <h3 class="text-base font-bold mb-3 uppercase tracking-wider text-amber-600">Import Data Packet</h3>
-                <p class="text-xs mb-6 font-semibold">Inbound file: <strong id="import-filename" class="font-bold text-blue-600"></strong>. Choose import protocol:</p>
+        <div id="import-confirm-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 hidden">
+            <div class="corporate-panel rounded-xl shadow-2xl w-full max-w-md p-4 sm:p-6">
+                <h3 class="text-sm sm:text-base font-bold mb-2 uppercase tracking-wider text-amber-600">Import Data Packet</h3>
+                <p class="text-xs mb-5 font-semibold">Inbound file: <strong id="import-filename" class="font-bold text-blue-600"></strong>. Choose import protocol:</p>
                 <div class="flex flex-col gap-2.5">
-                    <button id="import-action-merge" class="w-full py-2.5 border border-blue-500 bg-blue-500/10 text-blue-600 font-bold rounded-lg hover:bg-blue-500/20 uppercase text-xs tracking-wider">Merge & Integrate Data</button>
-                    <button id="import-action-replace" class="w-full py-2.5 border border-red-500 bg-red-500/10 text-red-600 font-bold rounded-lg hover:bg-red-500/20 uppercase text-xs tracking-wider">Wipe & Completely Replace</button>
-                    <button id="import-action-cancel" class="w-full py-2.5 border rounded-lg font-bold uppercase text-xs tracking-wider">Cancel</button>
+                    <button id="import-action-merge" class="w-full py-3 border border-blue-500 bg-blue-500/10 text-blue-600 font-bold rounded-lg hover:bg-blue-500/20 uppercase text-xs tracking-wider">Merge & Integrate Data</button>
+                    <button id="import-action-replace" class="w-full py-3 border border-red-500 bg-red-500/10 text-red-600 font-bold rounded-lg hover:bg-red-500/20 uppercase text-xs tracking-wider">Wipe & Completely Replace</button>
+                    <button id="import-action-cancel" class="w-full py-3 border rounded-lg font-bold uppercase text-xs tracking-wider">Cancel</button>
                 </div>
             </div>
         </div>
 
         <!-- CUSTOM CONFIRMATION DIALOGUE -->
-        <div id="confirm-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
-            <div class="corporate-panel rounded-xl shadow-2xl w-full max-w-md p-6">
-                <h3 id="confirm-title" class="text-base font-bold mb-2 uppercase tracking-wider">Confirm Operation</h3>
-                <p id="confirm-message" class="text-xs mb-6 font-semibold">Are you sure you want to proceed?</p>
+        <div id="confirm-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 hidden">
+            <div class="corporate-panel rounded-xl shadow-2xl w-full max-w-md p-4 sm:p-6">
+                <h3 id="confirm-title" class="text-sm sm:text-base font-bold mb-2 uppercase tracking-wider">Confirm Operation</h3>
+                <p id="confirm-message" class="text-xs mb-5 font-semibold">Are you sure you want to proceed?</p>
                 <div class="flex justify-end space-x-3">
-                    <button id="confirm-cancel-btn" class="px-4 py-2 border rounded-lg uppercase text-xs font-bold">Cancel</button>
-                    <button id="confirm-action-btn" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm uppercase text-xs">Confirm</button>
+                    <button id="confirm-cancel-btn" class="px-4 py-2.5 border rounded-lg uppercase text-xs font-bold">Cancel</button>
+                    <button id="confirm-action-btn" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm uppercase text-xs">Confirm</button>
                 </div>
             </div>
         </div>
@@ -501,7 +502,7 @@
                 aftersalesHeaders: [],
                 aftersalesRecords: [],
                 aftersalesSearchTerm: '',
-                aftersalesActiveFilterId: null, // Requirement 1: filter view state for aftersales
+                aftersalesActiveFilterId: null,
                 activeTab: 'collection' // 'collection' or 'aftersales'
             };
             
@@ -592,13 +593,13 @@
             function switchTab(tabName) {
                 state.activeTab = tabName;
                 if (tabName === 'collection') {
-                    tabCollection.className = "px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition bg-blue-600 text-white text-center";
-                    tabAftersales.className = "px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition text-slate-400 hover:text-white text-center";
+                    tabCollection.className = "px-3 py-2 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider transition bg-blue-600 text-white text-center";
+                    tabAftersales.className = "px-3 py-2 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider transition text-slate-400 hover:text-white text-center";
                     viewCollectionContainer.classList.remove('hidden');
                     viewAftersalesContainer.classList.add('hidden');
                 } else {
-                    tabAftersales.className = "px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition bg-emerald-600 text-white text-center";
-                    tabCollection.className = "px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition text-slate-400 hover:text-white text-center";
+                    tabAftersales.className = "px-3 py-2 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider transition bg-emerald-600 text-white text-center";
+                    tabCollection.className = "px-3 py-2 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider transition text-slate-400 hover:text-white text-center";
                     viewAftersalesContainer.classList.remove('hidden');
                     viewCollectionContainer.classList.add('hidden');
                     renderAftersalesCards();
@@ -664,9 +665,9 @@
                 const actionBtn = document.getElementById('confirm-action-btn');
                 
                 if (isDangerous) {
-                    actionBtn.className = "px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm uppercase text-xs";
+                    actionBtn.className = "px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm uppercase text-xs";
                 } else {
-                    actionBtn.className = "px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm uppercase text-xs";
+                    actionBtn.className = "px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm uppercase text-xs";
                 }
                 
                 activeConfirmCallback = onConfirm;
@@ -823,25 +824,28 @@
                     const removeIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
                     
                     const depth = (fieldObj.key.match(/:/g) || []).length;
-                    const indentStyle = `margin-left: ${depth * 20}px;`;
+                    // Responsive indentation on small screens
+                    const indentStyle = `margin-left: ${Math.min(depth * 12, 48)}px;`;
                     
                     let typeBadgeName = 'String';
                     if (fieldObj.type === 'checkbox') typeBadgeName = 'Boolean';
                     if (fieldObj.type === 'image') typeBadgeName = 'Image';
                     if (fieldObj.type === 'date') typeBadgeName = 'Date';
 
-                    const typeBadge = `<span class="text-[9px] border px-2 py-0.5 rounded ml-2 uppercase font-bold">${typeBadgeName}</span>`;
+                    const typeBadge = `<span class="text-[9px] border px-1.5 py-0.5 rounded ml-1 uppercase font-bold shrink-0">${typeBadgeName}</span>`;
                     const displayName = fieldObj.key.split(':').pop();
 
                     html += `
-                        <li class="custom-field-li flex items-center p-2.5 corporate-panel-inner rounded-lg group transition-all duration-150 cursor-grab" style="${indentStyle}" data-index="${index}" data-field="${fieldObj.key}" data-name="${displayName}" draggable="true">
-                            <div class="drag-handle p-1 mr-1 text-slate-400 hover:text-blue-600" title="Drag to reorder">${dragIcon}</div>
-                            <span class="font-bold break-all uppercase text-xs" data-role="field-name">${fieldObj.key}</span>
-                            ${typeBadge}
-                            <div class="field-actions flex items-center ml-auto space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                                <button data-action="edit-field" class="p-1 border rounded-md font-bold" title="Edit Field Name">${editIcon}</button>
-                                <button data-action="add-subdetail" class="p-1 border rounded-md font-bold" title="Add Subfield">${addIcon}</button>
-                                <button data-action="remove-field" class="p-1 border rounded-md text-red-600 font-bold" title="Remove Field">${removeIcon}</button>
+                        <li class="custom-field-li flex items-center justify-between p-2.5 corporate-panel-inner rounded-lg group transition-all duration-150 cursor-grab overflow-hidden gap-2" style="${indentStyle}" data-index="${index}" data-field="${fieldObj.key}" data-name="${displayName}" draggable="true">
+                            <div class="flex items-center gap-1.5 min-w-0 overflow-hidden">
+                                <div class="drag-handle p-1 text-slate-400 hover:text-blue-600 shrink-0" title="Drag to reorder">${dragIcon}</div>
+                                <span class="font-bold uppercase text-xs truncate" data-role="field-name">${fieldObj.key}</span>
+                                ${typeBadge}
+                            </div>
+                            <div class="field-actions flex items-center space-x-1 shrink-0">
+                                <button data-action="edit-field" class="p-1.5 sm:p-1 border rounded-md font-bold" title="Edit Field Name">${editIcon}</button>
+                                <button data-action="add-subdetail" class="p-1.5 sm:p-1 border rounded-md font-bold" title="Add Subfield">${addIcon}</button>
+                                <button data-action="remove-field" class="p-1.5 sm:p-1 border rounded-md text-red-600 font-bold" title="Remove Field">${removeIcon}</button>
                             </div>
                         </li>
                     `;
@@ -871,8 +875,8 @@
                                 : '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold border">NO</span>';
                         } else if (node.type === 'image') {
                             valueHTML = value
-                                ? `<div class="relative group mt-1 max-w-[200px] rounded-lg overflow-hidden border shadow-sm">
-                                     <img src="${value}" class="max-h-28 w-auto object-contain cursor-pointer hover:scale-105 transition duration-200" alt="${node.name}" data-action="copy-single" data-value="${value}" title="Click to copy image code" />
+                                ? `<div class="relative group mt-1 max-w-[180px] rounded-lg overflow-hidden border shadow-sm">
+                                     <img src="${value}" class="max-h-24 w-auto object-contain cursor-pointer hover:scale-105 transition duration-200" alt="${node.name}" data-action="copy-single" data-value="${value}" title="Click to copy image code" />
                                    </div>`
                                 : `<span class="italic text-[10px] font-bold">NO IMAGE</span>`;
                         } else if (node.type === 'date') {
@@ -898,15 +902,15 @@
                         }
 
                         const searchableText = `${node.name}: ${node.type === 'image' ? (value ? '[image]' : '') : (value || '')}`;
-                        const editIconBtn = `<button data-action="edit-item-direct" data-field-key="${node.fullName}" class="p-1 border rounded-md ml-2 font-bold transition-all duration-150 flex-shrink-0" title="Edit ${node.name}">
+                        const editIconBtn = `<button data-action="edit-item-direct" data-field-key="${node.fullName}" class="p-1.5 border rounded-md ml-2 font-bold transition-all duration-150 shrink-0" title="Edit ${node.name}">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                         </button>`;
 
                         html += `
-                            <div class="flex items-center justify-between py-2 border-b px-2 rounded-lg transition group" data-searchable-text="${searchableText.replace(/"/g, '&quot;')}">
-                                <div class="flex items-start flex-grow overflow-hidden pr-2">
-                                    <span class="font-bold text-[11px] pr-2 w-28 flex-shrink-0 uppercase tracking-wider">${node.name}:</span>
-                                    ${valueHTML}
+                            <div class="flex items-center justify-between py-2 border-b px-2 rounded-lg transition group gap-2" data-searchable-text="${searchableText.replace(/"/g, '&quot;')}">
+                                <div class="flex items-start flex-grow overflow-hidden pr-1 gap-1">
+                                    <span class="font-bold text-[11px] w-24 sm:w-28 shrink-0 uppercase tracking-wider truncate" title="${node.name}">${node.name}:</span>
+                                    <div class="min-w-0 flex-grow">${valueHTML}</div>
                                 </div>
                                 ${editIconBtn}
                             </div>
@@ -929,7 +933,7 @@
                                     ${arrowIcon}
                                     <span class="font-bold text-xs ml-1.5 uppercase tracking-wider">${node.name}:</span>
                                 </div>
-                                <div class="pl-4 border-l ml-2.5 mt-1 space-y-1 ${isCollapsed ? 'hidden' : ''}">
+                                <div class="pl-3 sm:pl-4 border-l ml-2 mt-1 space-y-1 ${isCollapsed ? 'hidden' : ''}">
                                     ${renderDetailTreeHTML(node.children, establishment, filteredFields)}
                                 </div>
                             </div>
@@ -958,12 +962,12 @@
 
                 if (lowerCaseSearchTerm) {
                     toggleListBtn.disabled = true;
-                    toggleListBtn.className = "px-5 py-2.5 border cursor-not-allowed shadow-sm text-xs uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 font-bold";
+                    toggleListBtn.className = "px-4 sm:px-5 py-2.5 sm:py-3 border cursor-not-allowed shadow-sm text-xs uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 font-bold";
                     toggleListText.textContent = "Filtered Search";
                     toggleListIcon.textContent = "🔍";
                 } else {
                     toggleListBtn.disabled = false;
-                    toggleListBtn.className = "px-5 py-2.5 border font-bold rounded-lg transition duration-150 shadow-sm text-xs whitespace-nowrap flex items-center justify-center gap-2 uppercase tracking-wider";
+                    toggleListBtn.className = "px-4 sm:px-5 py-2.5 sm:py-3 border font-bold rounded-lg hover:bg-slate-200 transition duration-150 shadow-sm text-xs whitespace-nowrap flex items-center justify-center gap-2 uppercase tracking-wider";
                     
                     if (state.isListExpanded) {
                         toggleListText.textContent = "Collapse List";
@@ -976,7 +980,7 @@
 
                 if (state.establishments.length === 0) {
                     establishmentsContainer.innerHTML = `
-                        <div class="corporate-panel-inner border-2 border-dashed rounded-xl p-8 text-center">
+                        <div class="corporate-panel-inner border-2 border-dashed rounded-xl p-6 sm:p-8 text-center">
                             <p class="uppercase tracking-wider text-xs font-bold">NO RECORDS STORED IN DATABASE</p>
                             <p class="text-[11px] uppercase mt-1 font-bold">Create a new record entry below to begin logging data.</p>
                         </div>
@@ -986,11 +990,11 @@
 
                 if (!lowerCaseSearchTerm && !state.isListExpanded) {
                     establishmentsContainer.innerHTML = `
-                        <div class="corporate-panel-inner border rounded-xl p-6 text-center shadow-sm relative overflow-hidden">
+                        <div class="corporate-panel-inner border rounded-xl p-5 sm:p-6 text-center shadow-sm relative overflow-hidden">
                             <p class="font-bold uppercase tracking-wider text-xs">Database List Minimized (${state.establishments.length} Records Saved)</p>
                             <p class="text-[11px] mt-1 max-w-md mx-auto uppercase font-bold">List is collapsed to optimize view. Expand to view active cards.</p>
                             <div class="mt-4 flex flex-wrap justify-center gap-3">
-                                <button data-action="expand-list" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition duration-150 uppercase tracking-wider">
+                                <button data-action="expand-list" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm transition duration-150 uppercase tracking-wider">
                                     Expand Record List
                                 </button>
                             </div>
@@ -1001,7 +1005,7 @@
 
                 if (lowerCaseSearchTerm && filteredList.length === 0) {
                     establishmentsContainer.innerHTML = `
-                        <div class="corporate-panel-inner border border-red-500 rounded-xl p-8 text-center">
+                        <div class="corporate-panel-inner border border-red-500 rounded-xl p-6 sm:p-8 text-center">
                             <p class="uppercase tracking-wider text-xs font-extrabold">NO MATCH FOUND FOR "${state.searchTerm}"</p>
                         </div>
                     `;
@@ -1009,7 +1013,7 @@
                 }
 
                 establishmentsContainer.innerHTML = `
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-fade-in">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 animate-fade-in">
                         ${filteredList.map(est => {
                             const totalDetails = state.customFields.filter(f => !f.key.includes(':') || state.customFields.find(p => p.key === f.key.substring(0, f.key.lastIndexOf(':')))).length;
                             const filledDetails = Object.values(est.details || {}).filter(val => {
@@ -1022,7 +1026,7 @@
                             const levelColor = percentageFilled === 100 ? 'bg-emerald-600' : 'bg-blue-600';
 
                             return `
-                            <div data-id="${est.id}" data-action="view-details" class="corporate-panel-inner p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between relative group">
+                            <div data-id="${est.id}" data-action="view-details" class="corporate-panel-inner p-3.5 sm:p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md flex flex-col justify-between relative group">
                                 <div class="flex justify-between items-start gap-2 mb-2">
                                     <h4 class="font-bold truncate tracking-wider uppercase text-xs flex-grow" title="${est.name}">${est.name}</h4>
                                 </div>
@@ -1073,7 +1077,6 @@
                 );
             });
 
-            // Helper to resolve specific header keys while strictly preserving input order
             function getFieldByMatchingKeys(detailsObj, possibleKeys) {
                 if (!detailsObj) return '—';
                 const lowerObj = {};
@@ -1089,7 +1092,6 @@
                 return '—';
             }
 
-            // 1. Dynamic Column Ingestion (Does NOT default to unresolved)
             aftersalesFileInput.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -1108,7 +1110,6 @@
                             return;
                         }
 
-                        // Headers array maintains exact input order from uploaded sheet
                         const headers = rawJson[0].map(h => String(h || '').trim()).filter(h => h.length > 0);
                         const dataRows = rawJson.slice(1);
 
@@ -1119,7 +1120,6 @@
                                 detailsObj[h] = row[colIdx] !== undefined && row[colIdx] !== null ? String(row[colIdx]) : '—';
                             });
 
-                            // Extract Merchant Name & DBA Name
                             const merchantName = getFieldByMatchingKeys(detailsObj, ['Merchant Name', 'MERCHANT NAME', 'Merchant', 'CLIENT', 'Client', headers[0]]);
                             const dbaName = getFieldByMatchingKeys(detailsObj, ['DBA Name', 'DBA NAME', 'DBA', 'Trading Name', 'Business Name']);
 
@@ -1128,7 +1128,7 @@
                                 merchantName: merchantName,
                                 dbaName: dbaName,
                                 details: detailsObj,
-                                status: 'None' // Does not default to unresolved
+                                status: 'None'
                             };
                         });
 
@@ -1149,7 +1149,6 @@
                 renderAftersalesCards();
             });
 
-            // 2. Interactive Status Tagging & Card Highlighting Render (Requirement 4: hide inner details by default)
             function renderAftersalesCards() {
                 if (!aftersalesCardsContainer) return;
                 const searchTerm = state.aftersalesSearchTerm.toLowerCase().trim();
@@ -1168,7 +1167,7 @@
 
                 if (state.aftersalesRecords.length === 0) {
                     aftersalesCardsContainer.innerHTML = `
-                        <div class="corporate-panel-inner border-2 border-dashed rounded-xl p-10 text-center">
+                        <div class="corporate-panel-inner border-2 border-dashed rounded-xl p-8 sm:p-10 text-center">
                             <p class="uppercase tracking-wider text-xs font-bold text-slate-400">NO AFTERSALES REPORT LOADED</p>
                             <p class="text-[11px] uppercase mt-1 font-semibold text-slate-500">Click the upload icon above to ingest row 1 headers & record columns.</p>
                         </div>
@@ -1178,7 +1177,7 @@
 
                 if (records.length === 0) {
                     aftersalesCardsContainer.innerHTML = `
-                        <div class="corporate-panel-inner border border-red-500 rounded-xl p-8 text-center">
+                        <div class="corporate-panel-inner border border-red-500 rounded-xl p-6 sm:p-8 text-center">
                             <p class="uppercase tracking-wider text-xs font-extrabold">NO MATCH FOUND FOR "${state.aftersalesSearchTerm}"</p>
                         </div>
                     `;
@@ -1203,11 +1202,11 @@
                             }
 
                             return `
-                            <div class="corporate-panel-inner p-4 rounded-xl border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm hover:border-blue-500/40 transition ${cardHighlightClass}">
-                                <div class="cursor-pointer flex-grow overflow-hidden pr-2" data-action="expand-aftersales-record" data-id="${r.id}" title="Click to view expanded record window">
-                                    <div class="flex items-center gap-2">
+                            <div class="corporate-panel-inner p-3.5 sm:p-4 rounded-xl border flex flex-col md:flex-row justify-between items-start md:items-center gap-3 shadow-sm hover:border-blue-500/40 transition ${cardHighlightClass}">
+                                <div class="cursor-pointer flex-grow overflow-hidden pr-1 w-full md:w-auto" data-action="expand-aftersales-record" data-id="${r.id}" title="Click to view expanded record window">
+                                    <div class="flex items-center gap-2 flex-wrap">
                                         <h3 class="font-bold text-xs uppercase tracking-wider text-blue-600 truncate hover:underline">${r.merchantName || '—'}</h3>
-                                        <span class="text-[9px] font-extrabold px-2 py-0.5 rounded border uppercase tracking-widest flex-shrink-0 ${statusBadgeClass}">
+                                        <span class="text-[9px] font-extrabold px-2 py-0.5 rounded border uppercase tracking-widest shrink-0 ${statusBadgeClass}">
                                             ${r.status && r.status !== 'None' ? r.status : 'UNTAGGED'}
                                         </span>
                                     </div>
@@ -1215,7 +1214,7 @@
                                 </div>
 
                                 <!-- Status Controls & Copy Action -->
-                                <div class="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto flex-shrink-0">
+                                <div class="flex items-center justify-between md:justify-end gap-2 w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-700/50">
                                     <div class="flex items-center gap-1">
                                         <button 
                                             data-action="set-status" 
@@ -1251,7 +1250,6 @@
                 `;
             }
 
-            // Expanded Window Renderer with Interactive Field Filtering for Aftersales Records
             function renderAftersalesExpandedModal(recordId) {
                 const rec = state.aftersalesRecords.find(r => r.id === recordId);
                 if (!rec) return;
@@ -1266,12 +1264,12 @@
                 const headers = state.aftersalesHeaders.length > 0 ? state.aftersalesHeaders : Object.keys(rec.details || {});
                 const activeFilter = state.savedFilters.find(f => f.id === state.aftersalesActiveFilterId);
                 const filteredKeys = activeFilter ? activeFilter.fields : null;
-                const copyButtonText = activeFilter ? `Copy View: ${activeFilter.name}` : 'Copy All Fields';
+                const copyButtonText = activeFilter ? `Copy View` : 'Copy All Fields';
 
                 let filtersHTML = '';
                 if (state.savedFilters.length > 0) {
                     filtersHTML = `
-                        <div class="space-y-2">
+                        <div class="space-y-1.5">
                             <h4 class="text-[10px] font-bold tracking-widest uppercase">Saved Filters</h4>
                             <div class="flex flex-wrap items-center gap-1.5">
                                 ${state.savedFilters.map(filter => `
@@ -1310,17 +1308,17 @@
                 }
 
                 aftersalesModalContent.innerHTML = `
-                    <div class="flex justify-between items-start border-b pb-3 mb-3 gap-4">
-                        <div>
+                    <div class="flex justify-between items-start border-b pb-3 mb-3 gap-3">
+                        <div class="min-w-0 pr-4">
                             <span class="text-[9px] text-emerald-600 uppercase tracking-wider font-extrabold border border-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded-md">AFTERSALES RECORD DETAILED VIEW</span>
-                            <h3 class="text-xl font-bold uppercase tracking-wider text-blue-600 mt-1">${rec.merchantName || '—'}</h3>
-                            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">DBA: ${rec.dbaName || '—'}</p>
+                            <h3 class="text-base sm:text-lg font-bold uppercase tracking-wider text-blue-600 mt-1 truncate">${rec.merchantName || '—'}</h3>
+                            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">DBA: ${rec.dbaName || '—'}</p>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <span class="text-[10px] font-extrabold px-3 py-1 rounded border uppercase tracking-widest ${statusBadgeClass}">
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span class="text-[10px] font-extrabold px-2.5 py-1 rounded border uppercase tracking-widest ${statusBadgeClass}">
                                 ${rec.status && rec.status !== 'None' ? rec.status : 'UNTAGGED'}
                             </span>
-                            <button data-action="close-aftersales-modal" class="transition text-2xl font-bold leading-none">&times;</button>
+                            <button data-action="close-aftersales-modal" class="transition text-2xl font-bold leading-none p-1">&times;</button>
                         </div>
                     </div>
 
@@ -1333,17 +1331,17 @@
                         />
                     </div>
 
-                    <div id="aftersales-modal-fields-container" class="space-y-2 max-h-[50vh] overflow-y-auto pr-2 my-2">
+                    <div id="aftersales-modal-fields-container" class="space-y-2 max-h-[42vh] overflow-y-auto pr-1 my-2">
                         ${headers.map(key => {
                             if (filteredKeys && !filteredKeys.includes(key)) return '';
                             const val = rec.details[key] !== undefined ? rec.details[key] : '—';
                             const safeVal = String(val).replace(/"/g, '&quot;');
                             const searchableText = `${key}: ${val}`.toLowerCase().replace(/"/g, '&quot;');
                             return `
-                                <div class="flex items-center justify-between p-2.5 rounded-lg border corporate-panel-inner hover:border-blue-500/30 transition" data-searchable-text="${searchableText}">
-                                    <span class="font-bold text-xs uppercase text-slate-400 w-1/3 truncate" title="${key}">${key}:</span>
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-lg border corporate-panel-inner hover:border-blue-500/30 transition gap-1 sm:gap-2" data-searchable-text="${searchableText}">
+                                    <span class="font-bold text-[11px] uppercase text-slate-400 sm:w-1/3 shrink-0 truncate" title="${key}">${key}:</span>
                                     <span 
-                                        class="font-bold text-xs uppercase break-all w-2/3 text-right cursor-pointer hover:bg-blue-500/20 hover:text-blue-600 rounded px-2 py-0.5 transition"
+                                        class="font-bold text-xs uppercase break-all sm:w-2/3 sm:text-right cursor-pointer hover:bg-blue-500/20 hover:text-blue-600 rounded px-1.5 py-0.5 transition"
                                         data-action="copy-single-aftersales" 
                                         data-value="${safeVal}" 
                                         data-field-name="${key}"
@@ -1354,36 +1352,36 @@
                         }).join('')}
                     </div>
 
-                    <div class="pt-4 border-t mt-4">
-                        <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
-                            <div class="flex-grow">${filtersHTML}</div>
-                            <button data-action="create-filter" class="px-3.5 py-2 border font-bold rounded-lg shadow-sm text-2xs whitespace-nowrap self-end uppercase tracking-widest transition">Add Filter</button>
+                    <div class="pt-3 border-t mt-3">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                            <div class="w-full md:w-auto">${filtersHTML}</div>
+                            <button data-action="create-filter" class="px-3 py-2 border font-bold rounded-lg shadow-sm text-2xs uppercase tracking-widest transition self-end md:self-auto">Add Filter</button>
                         </div>
                     </div>
 
-                    <div class="flex flex-wrap justify-between items-center pt-4 border-t mt-4 gap-3">
-                        <div class="flex gap-2">
+                    <div class="flex flex-col sm:flex-row justify-between items-center pt-3 border-t mt-3 gap-3">
+                        <div class="flex gap-2 w-full sm:w-auto justify-between sm:justify-start">
                             <button 
                                 data-action="set-status" 
                                 data-id="${rec.id}" 
                                 data-status="Resolved" 
-                                class="px-3 py-1.5 rounded text-xs font-bold uppercase transition ${isResolved ? 'bg-emerald-600 text-white' : 'border hover:bg-emerald-500/20 text-emerald-600'}"
+                                class="flex-1 sm:flex-none px-3 py-2 rounded text-xs font-bold uppercase transition ${isResolved ? 'bg-emerald-600 text-white' : 'border hover:bg-emerald-500/20 text-emerald-600'}"
                             >
-                                Mark Resolved
+                                Resolved
                             </button>
                             <button 
                                 data-action="set-status" 
                                 data-id="${rec.id}" 
                                 data-status="Unresolved" 
-                                class="px-3 py-1.5 rounded text-xs font-bold uppercase transition ${isUnresolved ? 'bg-red-600 text-white' : 'border hover:bg-red-500/20 text-red-600'}"
+                                class="flex-1 sm:flex-none px-3 py-2 rounded text-xs font-bold uppercase transition ${isUnresolved ? 'bg-red-600 text-white' : 'border hover:bg-red-500/20 text-red-600'}"
                             >
-                                Mark Unresolved
+                                Unresolved
                             </button>
                         </div>
 
-                        <div class="flex gap-2">
-                            <button data-action="copy-aftersales" data-id="${rec.id}" class="px-4 py-1.5 border rounded text-xs font-bold uppercase tracking-wider hover:bg-slate-200 transition">${copyButtonText}</button>
-                            <button data-action="close-aftersales-modal" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold uppercase tracking-wider transition">Close Window</button>
+                        <div class="flex gap-2 w-full sm:w-auto justify-end">
+                            <button data-action="copy-aftersales" data-id="${rec.id}" class="flex-1 sm:flex-none px-4 py-2 border rounded text-xs font-bold uppercase tracking-wider hover:bg-slate-200 transition">${copyButtonText}</button>
+                            <button data-action="close-aftersales-modal" class="flex-1 sm:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold uppercase tracking-wider transition">Close</button>
                         </div>
                     </div>
                 `;
@@ -1428,7 +1426,6 @@
                     const targetStatus = statusBtn.dataset.status;
                     const rec = state.aftersalesRecords.find(r => r.id === id);
                     if (rec) {
-                        // Requirement 2: If clicking already active status, untag/clear it back to 'None'
                         if (rec.status === targetStatus) {
                             rec.status = 'None';
                             showToast("STATUS UNTAGGED");
@@ -1572,7 +1569,6 @@
                 }
             });
 
-            // 3. Export with Working Cell Color-Coded Highlighting (NO added status column)
             exportAftersalesExcelBtn.addEventListener('click', () => {
                 if (!state.aftersalesRecords || state.aftersalesRecords.length === 0) {
                     showToast("NO AFTERSALES RECORDS TO EXPORT");
@@ -1580,7 +1576,6 @@
                 }
 
                 try {
-                    // Strictly keep existing headers; do NOT add a status column
                     const headers = [...state.aftersalesHeaders];
                     const dataArray = [headers];
 
@@ -1592,12 +1587,10 @@
                     const worksheet = XLSX.utils.aoa_to_sheet(dataArray);
                     const range = XLSX.utils.decode_range(worksheet['!ref']);
 
-                    // Color code rows based on record status
                     for (let R = 1; R <= range.e.r; ++R) {
                         const rec = state.aftersalesRecords[R - 1];
                         const status = rec ? rec.status : 'None';
 
-                        // Light Green (#D1FAE5) for Resolved, Light Red (#FEE2E2) for Unresolved
                         let fillColor = null;
                         if (status === 'Resolved') fillColor = "D1FAE5";
                         if (status === 'Unresolved') fillColor = "FEE2E2";
@@ -1667,13 +1660,13 @@
                                             name="${node.fullName}"
                                             type="date"
                                             value="${safeValue}"
-                                            class="flex-grow p-2 border rounded-lg focus:ring-blue-500/30 focus:border-blue-500 text-xs font-bold cursor-pointer"
+                                            class="flex-grow p-2.5 border rounded-lg focus:ring-blue-500/30 focus:border-blue-500 text-xs font-bold cursor-pointer"
                                         />
                                         <button
                                             type="button"
                                             data-action="set-today"
                                             data-target-input="${node.fullName}"
-                                            class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all"
+                                            class="px-3.5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all shrink-0"
                                         >
                                             Today
                                         </button>
@@ -1683,10 +1676,10 @@
                         } else if (node.type === 'image') {
                             const hasImage = !!value;
                             html += `
-                                <div class="space-y-1.5 p-3 rounded-lg corporate-panel-inner border" data-searchable-container data-searchable-text="${node.name.toLowerCase()}">
+                                <div class="space-y-2 p-3 rounded-lg corporate-panel-inner border" data-searchable-container data-searchable-text="${node.name.toLowerCase()}">
                                     <label class="block text-[10px] font-bold tracking-wider uppercase">${node.name} (IMAGE)</label>
-                                    <div class="flex items-center gap-4">
-                                        <div class="relative w-14 h-14 rounded-lg border flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                    <div class="flex items-center gap-3">
+                                        <div class="relative w-14 h-14 rounded-lg border shrink-0 overflow-hidden flex items-center justify-center">
                                             ${hasImage 
                                                 ? `<img id="preview-${node.fullName.replace(/:/g, '-')}" src="${value}" class="object-cover w-full h-full" />` 
                                                 : `<span id="preview-placeholder-${node.fullName.replace(/:/g, '-')}" class="text-[10px] font-bold font-mono">EMPTY</span>`}
@@ -1712,7 +1705,7 @@
                                                 <button
                                                     type="button"
                                                     onclick="document.getElementById('file-input-${node.fullName.replace(/:/g, '-')}').click()"
-                                                    class="px-3 py-1.5 border rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all shadow-sm"
+                                                    class="px-3 py-2 border rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all shadow-sm"
                                                 >
                                                     Upload
                                                 </button>
@@ -1722,7 +1715,7 @@
                                                     data-target-hidden="${node.fullName}" 
                                                     data-preview-img="preview-${node.fullName.replace(/:/g, '-')}" 
                                                     data-preview-placeholder="preview-placeholder-${node.fullName.replace(/:/g, '-')}" 
-                                                    class="${hasImage ? '' : 'hidden'} px-3 py-1.5 border border-red-500 text-red-600 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all"
+                                                    class="${hasImage ? '' : 'hidden'} px-3 py-2 border border-red-500 text-red-600 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all"
                                                     id="clear-btn-${node.fullName.replace(/:/g, '-')}"
                                                 >
                                                     Clear
@@ -1742,7 +1735,7 @@
                                         name="${node.fullName}"
                                         type="text"
                                         value="${safeValue}"
-                                        class="w-full p-2.5 border rounded-lg focus:ring-blue-500/30 focus:border-blue-500 text-xs font-bold"
+                                        class="w-full p-2.5 sm:p-3 border rounded-lg focus:ring-blue-500/30 focus:border-blue-500 text-xs font-bold"
                                         placeholder="Enter value..."
                                     />
                                 </div>
@@ -1825,7 +1818,7 @@
                             name="establishment-name"
                             type="text"
                             value="${safeName}"
-                            class="w-full p-2.5 border rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 font-bold uppercase tracking-wider text-xs"
+                            class="w-full p-2.5 sm:p-3 border rounded-lg focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30 font-bold uppercase tracking-wider text-xs"
                             required
                         />
                     </div>
@@ -1838,16 +1831,16 @@
                                 id="edit-modal-search-input"
                                 type="text"
                                 placeholder="QUICK FILTER FIELDS..."
-                                class="w-full p-2 border rounded-lg focus:outline-none focus:border-blue-600 text-[10px] uppercase font-bold"
+                                class="w-full p-2.5 border rounded-lg focus:outline-none focus:border-blue-600 text-[10px] uppercase font-bold"
                             />
                         </div>
-                        <div id="edit-modal-fields-container" class="max-h-60 overflow-y-auto pr-2 border rounded-lg p-3 space-y-3">
+                        <div id="edit-modal-fields-container" class="max-h-56 sm:max-h-64 overflow-y-auto pr-1 border rounded-lg p-2.5 sm:p-3 space-y-3">
                             ${customFieldsHTML}
                         </div>
                     </div>
-                    <div class="flex justify-end space-x-3 pt-4 border-t">
-                        <button type="button" data-action="close-modal" class="px-4 py-2 border rounded-lg uppercase text-xs font-bold">Cancel</button>
-                        <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm uppercase text-xs">Save Changes</button>
+                    <div class="flex justify-end space-x-3 pt-3 border-t">
+                        <button type="button" data-action="close-modal" class="px-4 py-2.5 border rounded-lg uppercase text-xs font-bold">Cancel</button>
+                        <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm uppercase text-xs">Save Changes</button>
                     </div>
                 `;
                 editModal.classList.remove('hidden');
@@ -1914,7 +1907,7 @@
                 let html = '';
                 nodes.forEach(node => {
                     const isChecked = checkedFields.includes(node.fullName);
-                    const indentStyle = `margin-left: ${level * 24}px;`;
+                    const indentStyle = `margin-left: ${Math.min(level * 16, 48)}px;`;
                     html += `
                         <div class="flex items-center rounded-lg p-2 transition" style="${indentStyle}">
                             <input
@@ -1999,12 +1992,12 @@
                 const fieldsToRender = activeFilter ? activeFilter.fields : null;
                 const parsedFields = parseCustomFields(state.customFields);
                 const detailsHTML = renderDetailTreeHTML(parsedFields, establishment, fieldsToRender);
-                const copyButtonText = activeFilter ? `Copy View: ${activeFilter.name}` : 'Copy All Data';
+                const copyButtonText = activeFilter ? `Copy View` : 'Copy All Data';
 
                 let filtersHTML = '';
                 if (state.savedFilters.length > 0) {
                     filtersHTML = `
-                        <div class="space-y-2">
+                        <div class="space-y-1.5">
                             <h4 class="text-[10px] font-bold tracking-widest uppercase">Saved Filters</h4>
                             <div class="flex flex-wrap items-center gap-1.5">
                                 ${state.savedFilters.map(filter => `
@@ -2043,15 +2036,15 @@
                 }
 
                 viewModalContent.innerHTML = `
-                    <div class="flex justify-between items-start border-b pb-2 mb-3">
-                        <div>
+                    <div class="flex justify-between items-start border-b pb-2.5 mb-3 gap-2">
+                        <div class="min-w-0 pr-2">
                             <span class="text-[9px] text-blue-600 uppercase tracking-wider font-extrabold border border-blue-600 bg-blue-500/10 px-1.5 py-0.5 rounded-md">RECORD STREAM</span>
-                            <h3 class="text-lg font-bold break-all uppercase tracking-wider mt-1">${establishment.name}</h3>
+                            <h3 class="text-base sm:text-lg font-bold break-all uppercase tracking-wider mt-1">${establishment.name}</h3>
                         </div>
-                        <button data-action="close-view-modal" class="transition text-2xl font-bold leading-none">&times;</button>
+                        <button data-action="close-view-modal" class="transition text-2xl font-bold leading-none p-1 shrink-0">&times;</button>
                     </div>
                     
-                    <div class="mb-4">
+                    <div class="mb-3">
                         <input
                             id="view-modal-search-input"
                             type="text"
@@ -2060,20 +2053,20 @@
                         />
                     </div>
 
-                    <div id="details-list-container" class="space-y-1 max-h-[45vh] overflow-y-auto pr-2">
+                    <div id="details-list-container" class="space-y-1 max-h-[40vh] overflow-y-auto pr-1">
                         ${detailsHTML || '<p class="italic text-xs uppercase font-bold">No attributes mapped.</p>'}
                     </div>
-                    <div class="pt-4 border-t mt-4">
-                        <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
-                            <div class="flex-grow">${filtersHTML}</div>
-                            <button data-action="create-filter" class="px-3.5 py-2 border font-bold rounded-lg shadow-sm text-2xs whitespace-nowrap self-end uppercase tracking-widest transition">Add Filter</button>
+                    <div class="pt-3 border-t mt-3">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                            <div class="w-full md:w-auto">${filtersHTML}</div>
+                            <button data-action="create-filter" class="px-3 py-2 border font-bold rounded-lg shadow-sm text-2xs uppercase tracking-widest transition self-end md:self-auto">Add Filter</button>
                         </div>
                     </div>
-                    <div class="flex flex-wrap gap-2.5 justify-end items-center pt-5 border-t mt-5">
-                        <button data-action="copy-all" data-id="${establishment.id}" class="px-4 py-2 border font-bold rounded-lg text-xs uppercase tracking-wider transition">${copyButtonText}</button>
-                        <button data-action="duplicate" data-id="${establishment.id}" class="px-4 py-2 border font-bold rounded-lg text-xs uppercase tracking-wider transition">Duplicate</button>
-                        <button data-action="open-modal" data-id="${establishment.id}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs uppercase tracking-wider shadow-sm transition">Edit Record</button>
-                        <button data-action="delete" data-id="${establishment.id}" class="px-4 py-2 border border-red-500 text-red-600 font-bold rounded-lg text-xs uppercase tracking-wider transition">Delete</button>
+                    <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 justify-end items-center pt-4 border-t mt-4">
+                        <button data-action="copy-all" data-id="${establishment.id}" class="px-3.5 py-2 border font-bold rounded-lg text-xs uppercase tracking-wider transition">${copyButtonText}</button>
+                        <button data-action="duplicate" data-id="${establishment.id}" class="px-3.5 py-2 border font-bold rounded-lg text-xs uppercase tracking-wider transition">Duplicate</button>
+                        <button data-action="open-modal" data-id="${establishment.id}" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs uppercase tracking-wider shadow-sm transition">Edit</button>
+                        <button data-action="delete" data-id="${establishment.id}" class="px-3.5 py-2 border border-red-500 text-red-600 font-bold rounded-lg text-xs uppercase tracking-wider transition">Delete</button>
                     </div>
                 `;
                 viewModal.classList.remove('hidden');
@@ -2211,19 +2204,21 @@
                 } else if (action === 'add-subdetail') {
                     const newLi = document.createElement('li');
                     const parentLevel = (field.match(/:/g) || []).length;
-                    newLi.style.marginLeft = `${(parentLevel + 1) * 20}px`;
+                    newLi.style.marginLeft = `${Math.min((parentLevel + 1) * 16, 48)}px`;
                     newLi.dataset.role = 'add-new';
                     newLi.innerHTML = `
-                        <div class="field-editor flex-grow flex items-center space-x-2 p-2 corporate-panel-inner rounded-lg border">
-                            <input type="text" class="flex-grow p-1.5 border rounded-lg text-xs uppercase font-bold placeholder-slate-500" placeholder="Subfield name..." />
-                            <select class="p-1.5 border rounded-lg text-xs uppercase font-bold">
+                        <div class="field-editor flex-grow flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 p-2 corporate-panel-inner rounded-lg border">
+                            <input type="text" class="flex-grow p-2 border rounded-lg text-xs uppercase font-bold placeholder-slate-500" placeholder="Subfield name..." />
+                            <select class="p-2 border rounded-lg text-xs uppercase font-bold">
                                 <option value="text">STRING</option>
                                 <option value="date">DATE</option>
                                 <option value="checkbox">BOOLEAN</option>
                                 <option value="image">IMAGE</option>
                             </select>
-                            <button data-action="save-add" data-parent-field="${field}" class="px-2.5 py-1.5 bg-blue-600 text-white text-xs rounded-lg font-bold">Add</button>
-                            <button data-action="cancel-add" class="px-2 py-1.5 border rounded-lg text-xs font-bold">Cancel</button>
+                            <div class="flex gap-2 justify-end">
+                                <button data-action="save-add" data-parent-field="${field}" class="px-3 py-2 bg-blue-600 text-white text-xs rounded-lg font-bold">Add</button>
+                                <button data-action="cancel-add" class="px-3 py-2 border rounded-lg text-xs font-bold">Cancel</button>
+                            </div>
                         </div>
                     `;
                     li.after(newLi);
@@ -2266,10 +2261,12 @@
                     actionsDiv.style.display = 'none';
 
                     const editorHTML = `
-                        <div class="field-editor flex-grow flex items-center space-x-2 p-1.5 border rounded-lg corporate-panel-inner">
-                            <input type="text" class="flex-grow p-1 border rounded-lg text-xs uppercase font-bold" value="${li.dataset.name}" />
-                            <button data-action="save-edit" class="px-2.5 py-1 bg-blue-600 text-white text-xs rounded-lg font-bold">Save</button>
-                            <button data-action="cancel-edit" class="px-2 py-1 border rounded-lg text-xs font-bold">Cancel</button>
+                        <div class="field-editor flex-grow flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 p-1.5 border rounded-lg corporate-panel-inner">
+                            <input type="text" class="flex-grow p-2 sm:p-1 border rounded-lg text-xs uppercase font-bold" value="${li.dataset.name}" />
+                            <div class="flex gap-2 justify-end">
+                                <button data-action="save-edit" class="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg font-bold">Save</button>
+                                <button data-action="cancel-edit" class="px-3 py-1.5 border rounded-lg text-xs font-bold">Cancel</button>
+                            </div>
                         </div>
                     `;
                     actionsDiv.insertAdjacentHTML('beforebegin', editorHTML);
@@ -2661,7 +2658,6 @@
                 }
             });
 
-            // --- Drag and Drop Logic for Schema Field Reordering ---
             let draggedElement = null;
 
             customFieldsList.addEventListener('dragstart', (e) => {
@@ -2699,7 +2695,6 @@
                 }
             });
 
-            // --- Import / Export Logic (Now auto-triggers cloud save) ---
             function performImportMerge(payload) {
                 const importedEstablishments = payload.establishments || [];
                 const importedFields = payload.fieldOrder || [];
@@ -2737,7 +2732,7 @@
                     }
                 });
 
-                saveState(); // Syncs immediately to Supabase Cloud
+                saveState();
                 render();
                 showToast(`SUCCESS: ${importedEstCount} RECORDS IMPORTED & SYNCED`);
             }
@@ -2772,7 +2767,7 @@
                     }
                 });
                 
-                saveState(); // Syncs immediately to Supabase Cloud
+                saveState();
                 render();
                 showToast(`DATABASE REPLACED: ${importedEstCount} RECORDS & SYNCED`);
             }
@@ -2871,7 +2866,6 @@
                 showToast(`DATA EXPORTED`);
             });
 
-            // --- INITIALIZATION ---
             await loadState();
         });
     </script>
