@@ -496,11 +496,11 @@
             const APP_STORAGE_KEY = 'enterpriseDataManager';
             const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-            // --- LOAD STATE FROM SUPABASE CLOUD ---
+            // --- LOAD STATE FROM SUPABASE CLOUD (app_state table) ---
             async function loadState() {
                 try {
                     const { data, error } = await _supabase
-                        .from('procast_state')
+                        .from('app_state')
                         .select('payload')
                         .eq('id', 'main_data')
                         .single();
@@ -508,7 +508,6 @@
                     if (data && data.payload) {
                         state = data.payload;
                     } else {
-                        // Fallback to local storage if cloud is empty
                         const savedState = localStorage.getItem(APP_STORAGE_KEY);
                         if (savedState) state = JSON.parse(savedState);
                     }
@@ -549,13 +548,13 @@
                 render();
             }
 
-            // --- SAVE STATE TO SUPABASE CLOUD ---
+            // --- SAVE STATE TO SUPABASE CLOUD (app_state table) ---
             async function saveState() {
                 localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state));
 
                 try {
                     const { error } = await _supabase
-                        .from('procast_state')
+                        .from('app_state')
                         .upsert({ id: 'main_data', payload: state, updated_at: new Date() });
 
                     if (error) {
@@ -2559,7 +2558,7 @@
                 }
             });
 
-            // --- Import / Export Logic ---
+            // --- Import / Export Logic (Now auto-triggers cloud save) ---
             function performImportMerge(payload) {
                 const importedEstablishments = payload.establishments || [];
                 const importedFields = payload.fieldOrder || [];
@@ -2597,9 +2596,9 @@
                     }
                 });
 
-                saveState();
+                saveState(); // Syncs immediately to Supabase Cloud
                 render();
-                showToast(`SUCCESS: ${importedEstCount} RECORDS IMPORTED`);
+                showToast(`SUCCESS: ${importedEstCount} RECORDS IMPORTED & SYNCED`);
             }
 
             function performImportReplace(payload) {
@@ -2632,9 +2631,9 @@
                     }
                 });
                 
-                saveState();
+                saveState(); // Syncs immediately to Supabase Cloud
                 render();
-                showToast(`DATABASE REPLACED: ${importedEstCount} RECORDS`);
+                showToast(`DATABASE REPLACED: ${importedEstCount} RECORDS & SYNCED`);
             }
 
             const importBtn = document.getElementById('import-btn');
