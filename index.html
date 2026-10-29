@@ -2720,10 +2720,3 @@
     </script>
 </body>
 </html>
-```eof
-
-### Summary of Changes:
-1. **Excel Column Header Integrity:** Standardized Aftersales Excel exports so extra status columns are **not** appended to exported files.
-2. **Upload Default Status:** Uploaded records now initialize with an untagged state (`'None'`) instead of defaulting to `'Unresolved'`.
-3. **Working Cell Color-Coding:** Swapped the library runtime to `xlsx-js-style` and explicitly passed solid fill patterns so cell backgrounds highlight correctly when exported.
-4. **Expanded View Filtering:** Integrated an interactive search filter into the expanded record window to quickly isolate and highlight specific field rows.
