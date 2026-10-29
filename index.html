@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PROJECT MAYA - PROCAST // BUSINESS TERMINAL</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- SheetJS Styling Library for Excel Export Styling -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -106,6 +107,19 @@
             background-color: rgba(14, 165, 233, 0.2) !important;
             border-color: #0284c7 !important;
         }
+
+        /* Card highlight themes for resolved / unresolved aftersales records */
+        .card-resolved {
+            border-color: #10b981 !important;
+            background-color: rgba(16, 185, 129, 0.08) !important;
+        }
+        .card-unresolved {
+            border-color: #ef4444 !important;
+            background-color: rgba(239, 68, 68, 0.08) !important;
+        }
+        .card-none {
+            border-color: #64748b !important;
+        }
     </style>
 </head>
 <body class="dark-mode min-h-screen relative overflow-x-hidden">
@@ -122,18 +136,22 @@
                     </h1>
                 </div>
                 <p class="text-xs mt-1 uppercase tracking-wider font-semibold">
-                    Enterprise Data Management Console // Storage: <span id="sync-status" class="text-blue-600 font-bold">SECURE (HYBRID)</span>
+                    Enterprise Data Management Console // Local Storage: <span class="text-blue-600 font-bold">SECURE</span>
                 </p>
             </div>
             
-            <!-- Controls & Theme Toggle -->
-            <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
-                <div class="hidden sm:flex gap-4 text-xs border-l border-slate-400 pl-4">
-                    <div>
-                        <span class="block uppercase font-bold">System Status</span>
-                        <span class="text-emerald-600 font-extrabold uppercase">Operational</span>
-                    </div>
+            <!-- Controls, View Tabs & Theme Toggle -->
+            <div class="flex flex-wrap items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                <!-- View Switcher Tabs -->
+                <div class="flex items-center bg-slate-900/50 p-1 rounded-lg border border-slate-700">
+                    <button id="tab-collection" class="px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition bg-blue-600 text-white">
+                        Data Collection
+                    </button>
+                    <button id="tab-aftersales" class="px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition text-slate-400 hover:text-white">
+                        Aftersales Rechecking
+                    </button>
                 </div>
+
                 <button
                     id="theme-toggle-btn"
                     class="flex items-center gap-2 px-3.5 py-2 border border-slate-500 rounded-lg text-xs font-bold hover:bg-slate-200 transition shadow-sm uppercase tracking-wider"
@@ -145,139 +163,211 @@
             </div>
         </header>
 
-        <!-- STEP 1: SAVED ESTABLISHMENTS PANEL -->
-        <section class="corporate-panel p-6 rounded-xl transition-all duration-300">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b pb-4 gap-4">
-                <div class="flex items-center gap-3">
-                    <div class="p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-600">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+        <!-- ================= VIEW 1: DATA COLLECTION MODULE ================= -->
+        <div id="view-collection-container" class="space-y-6">
+            <!-- STEP 1: SAVED ESTABLISHMENTS PANEL -->
+            <section class="corporate-panel p-6 rounded-xl transition-all duration-300">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b pb-4 gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        </div>
+                        <h2 id="establishments-header" class="text-base font-bold tracking-wide uppercase">
+                            1. Saved Records (0)
+                        </h2>
                     </div>
-                    <h2 id="establishments-header" class="text-base font-bold tracking-wide uppercase">
-                        1. Saved Records (0)
-                    </h2>
+                    
+                    <!-- Action Controls (Import/Export) -->
+                    <div class="flex space-x-3 w-full sm:w-auto">
+                        <input type="file" id="import-file-input" accept=".json" class="hidden" />
+                        <button
+                            id="import-btn"
+                            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition duration-150 shadow-sm text-xs uppercase tracking-wider"
+                        >
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                            Import Data
+                        </button>
+                        <button
+                            id="export-btn"
+                            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition duration-150 shadow-sm text-xs uppercase tracking-wider"
+                        >
+                            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Export Data
+                        </button>
+                    </div>
                 </div>
                 
-                <!-- Action Controls (Import/Export) -->
-                <div class="flex space-x-3 w-full sm:w-auto">
-                    <input type="file" id="import-file-input" accept=".json" class="hidden" />
-                    <button
-                        id="import-btn"
-                        class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition duration-150 shadow-sm text-xs uppercase tracking-wider"
-                    >
-                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                        Import Data
-                    </button>
-                    <button
-                        id="export-btn"
-                        class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition duration-150 shadow-sm text-xs uppercase tracking-wider"
-                    >
-                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        Export Data
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Search & Toggle Bar -->
-            <div class="flex flex-col sm:flex-row gap-3 mb-6">
-                <div class="relative flex-grow">
-                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    </span>
-                    <input
-                        id="search-input"
-                        type="text"
-                        placeholder="SEARCH RECORDS OR SPECIFICATIONS..."
-                        class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/30 uppercase tracking-wider transition-colors duration-200"
-                    />
-                </div>
-                <button
-                    id="toggle-list-btn"
-                    class="px-5 py-2.5 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition duration-150 shadow-sm text-xs whitespace-nowrap flex items-center justify-center gap-2 uppercase tracking-wider"
-                >
-                    <span id="toggle-list-icon">📂</span>
-                    <span id="toggle-list-text">Show All</span>
-                </button>
-            </div>
-
-            <!-- Establishments list container -->
-            <div id="establishments-container">
-                 <!-- Establishments list gets rendered here by JavaScript -->
-            </div>
-        </section>
-
-        <!-- Two-column or stacked layout for Add and Structure tools -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            <!-- STEP 2: ADD NEW ESTABLISHMENT -->
-            <section class="corporate-panel p-6 rounded-xl h-fit md:col-span-1">
-                <div class="flex items-center gap-3 mb-4 border-b pb-3">
-                    <div class="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-600">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                    <h2 class="text-sm font-bold tracking-wide uppercase">
-                        2. Create Record
-                    </h2>
-                </div>
-                
-                <form id="add-establishment-form" class="flex flex-col space-y-4">
-                    <div>
-                        <label for="new-establishment-name" class="block text-[11px] font-bold tracking-wider uppercase mb-1">Record Identifier</label>
+                <!-- Search & Toggle Bar -->
+                <div class="flex flex-col sm:flex-row gap-3 mb-6">
+                    <div class="relative flex-grow">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </span>
                         <input
-                            id="new-establishment-name"
+                            id="search-input"
                             type="text"
-                            placeholder="e.g. CLIENT ABC"
-                            required
-                            class="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-xs uppercase font-bold"
+                            placeholder="SEARCH RECORDS OR SPECIFICATIONS..."
+                            class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/30 uppercase tracking-wider transition-colors duration-200"
                         />
                     </div>
                     <button
-                        type="submit"
-                        class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-all duration-150 text-xs uppercase tracking-wider"
+                        id="toggle-list-btn"
+                        class="px-5 py-2.5 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition duration-150 shadow-sm text-xs whitespace-nowrap flex items-center justify-center gap-2 uppercase tracking-wider"
                     >
-                        Save Record
+                        <span id="toggle-list-icon">📂</span>
+                        <span id="toggle-list-text">Show All</span>
                     </button>
-                </form>
+                </div>
+
+                <!-- Establishments list container -->
+                <div id="establishments-container">
+                     <!-- Establishments list gets rendered here by JavaScript -->
+                </div>
             </section>
 
-            <!-- STEP 3: DEFINE DATA STRUCTURE -->
-            <section class="corporate-panel p-6 rounded-xl h-fit md:col-span-2">
-                <div class="flex items-center gap-3 mb-4 border-b pb-3">
-                    <div class="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-600">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a2 2 0 002 2h3a2 2 0 012 2v3a2 2 0 002 2v6a2 2 0 01-2 2h-3a2 2 0 00-2-2v-1a2 2 0 00-2-2H9a2 2 0 00-2 2v1a2 2 0 01-2 2H2a2 2 0 01-2-2v-6a2 2 0 002-2v-3a2 2 0 012-2h3a2 2 0 002-2V4z"></path></svg>
+            <!-- Two-column or stacked layout for Add and Structure tools -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- STEP 2: ADD NEW ESTABLISHMENT -->
+                <section class="corporate-panel p-6 rounded-xl h-fit md:col-span-1">
+                    <div class="flex items-center gap-3 mb-4 border-b pb-3">
+                        <div class="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <h2 class="text-sm font-bold tracking-wide uppercase">
+                            2. Create Record
+                        </h2>
                     </div>
-                    <h2 class="text-sm font-bold tracking-wide uppercase">
-                        3. Field Schema Architecture (Drag to Reorder)
-                    </h2>
+                    
+                    <form id="add-establishment-form" class="flex flex-col space-y-4">
+                        <div>
+                            <label for="new-establishment-name" class="block text-[11px] font-bold tracking-wider uppercase mb-1">Record Identifier</label>
+                            <input
+                                id="new-establishment-name"
+                                type="text"
+                                placeholder="e.g. CLIENT ABC"
+                                required
+                                class="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-xs uppercase font-bold"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-all duration-150 text-xs uppercase tracking-wider"
+                        >
+                            Save Record
+                        </button>
+                    </form>
+                </section>
+
+                <!-- STEP 3: DEFINE DATA STRUCTURE -->
+                <section class="corporate-panel p-6 rounded-xl h-fit md:col-span-2">
+                    <div class="flex items-center gap-3 mb-4 border-b pb-3">
+                        <div class="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a2 2 0 002 2h3a2 2 0 012 2v3a2 2 0 002 2v6a2 2 0 01-2 2h-3a2 2 0 00-2-2v-1a2 2 0 00-2-2H9a2 2 0 00-2 2v1a2 2 0 01-2 2H2a2 2 0 01-2-2v-6a2 2 0 002-2v-3a2 2 0 012-2h3a2 2 0 002-2V4z"></path></svg>
+                        </div>
+                        <h2 class="text-sm font-bold tracking-wide uppercase">
+                            3. Field Schema Architecture (Drag to Reorder)
+                        </h2>
+                    </div>
+
+                    <form id="add-field-form" class="flex flex-wrap sm:flex-nowrap items-center gap-2 mb-4">
+                        <input
+                            id="new-field-name"
+                            type="text"
+                            placeholder="ADD MATRIX FIELD..."
+                            class="flex-grow w-full sm:w-auto p-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-xs uppercase font-bold"
+                        />
+                        <select id="new-field-type" class="p-2.5 border rounded-lg focus:outline-none text-xs uppercase font-bold w-full sm:w-auto">
+                            <option value="text">DATA STRING</option>
+                            <option value="date">DATE</option>
+                            <option value="checkbox">BOOLEAN</option>
+                            <option value="image">IMAGE</option>
+                        </select>
+                        <button
+                            type="submit"
+                            class="px-5 py-2.5 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition-all duration-150 text-xs uppercase tracking-wider w-full sm:w-auto"
+                        >
+                            Add Field
+                        </button>
+                    </form>
+
+                    <div class="max-h-96 overflow-y-auto pr-2">
+                        <ul id="custom-fields-list" class="space-y-2">
+                            <!-- Custom fields will be rendered here by JavaScript -->
+                        </ul>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+
+        <!-- ================= VIEW 2: AFTERSALES RECHECKING MODULE ================= -->
+        <div id="view-aftersales-container" class="space-y-6 hidden">
+            <section class="corporate-panel p-6 rounded-xl">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b pb-4 gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        <div>
+                            <h2 class="text-base font-bold tracking-wide uppercase">Aftersales Rechecking Console</h2>
+                            <p class="text-xs uppercase font-semibold mt-0.5">Dynamic Column Ingestion & Highlight Export</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons for Aftersales -->
+                    <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                        <input type="file" id="aftersales-file-input" accept=".xlsx, .xls" class="hidden" />
+                        <button
+                            id="upload-aftersales-btn"
+                            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm transition duration-150 text-xs uppercase tracking-wider"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                            Upload Excel
+                        </button>
+                        <button
+                            id="export-aftersales-excel-btn"
+                            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm transition duration-150 text-xs uppercase tracking-wider"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Export Aftersales to Excel
+                        </button>
+                        <button
+                            id="clear-aftersales-btn"
+                            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 border border-red-500 text-red-600 hover:bg-red-500/10 font-bold rounded-lg shadow-sm transition duration-150 text-xs uppercase tracking-wider"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            Erase All Data
+                        </button>
+                    </div>
                 </div>
 
-                <form id="add-field-form" class="flex flex-wrap sm:flex-nowrap items-center gap-2 mb-4">
-                    <input
-                        id="new-field-name"
-                        type="text"
-                        placeholder="ADD MATRIX FIELD..."
-                        class="flex-grow w-full sm:w-auto p-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-xs uppercase font-bold"
-                    />
-                    <select id="new-field-type" class="p-2.5 border rounded-lg focus:outline-none text-xs uppercase font-bold w-full sm:w-auto">
-                        <option value="text">DATA STRING</option>
-                        <option value="date">DATE</option>
-                        <option value="checkbox">BOOLEAN</option>
-                        <option value="image">IMAGE</option>
-                    </select>
-                    <button
-                        type="submit"
-                        class="px-5 py-2.5 border border-slate-500 font-bold rounded-lg hover:bg-slate-200 transition-all duration-150 text-xs uppercase tracking-wider w-full sm:w-auto"
-                    >
-                        Add Field
-                    </button>
-                </form>
+                <!-- Search & Filters Bar for Aftersales -->
+                <div class="flex flex-col sm:flex-row gap-3 mb-6">
+                    <div class="relative flex-grow">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </span>
+                        <input
+                            id="aftersales-search-input"
+                            type="text"
+                            placeholder="SEARCH ANY FIELD OR SPECIFICATION IN AFTERSALES RECORDS..."
+                            class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/30 uppercase tracking-wider transition-colors duration-200"
+                        />
+                    </div>
+                    <div id="aftersales-stats" class="px-4 py-2.5 corporate-panel-inner border rounded-lg flex items-center text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+                        Records Loaded: 0
+                    </div>
+                </div>
 
-                <div class="max-h-96 overflow-y-auto pr-2">
-                    <ul id="custom-fields-list" class="space-y-2">
-                        <!-- Custom fields will be rendered here by JavaScript -->
-                    </ul>
+                <!-- Aftersales Cards Container -->
+                <div id="aftersales-cards-container">
+                    <div class="corporate-panel-inner border-2 border-dashed rounded-xl p-10 text-center">
+                        <p class="uppercase tracking-wider text-xs font-bold text-slate-400">NO AFTERSALES REPORT LOADED</p>
+                        <p class="text-[11px] uppercase mt-1 font-semibold text-slate-500">Click "Upload Excel" above to ingest row 1 headers & record columns.</p>
+                    </div>
                 </div>
             </section>
-
         </div>
 
         <!-- Toast Notifications -->
@@ -307,6 +397,13 @@
         <div id="view-details-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
             <div id="view-details-modal-content" class="corporate-panel rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
                 <!-- View Modal content will be rendered by JS -->
+            </div>
+        </div>
+
+        <!-- AFTERSALES RECORD EXPANDED DETAIL MODAL -->
+        <div id="aftersales-details-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+            <div id="aftersales-details-modal-content" class="corporate-panel rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative">
+                <!-- Aftersales detailed record expanded content will be rendered by JS -->
             </div>
         </div>
         
@@ -365,18 +462,7 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            // --- SUPABASE CONFIGURATION ---
-            // Replace these strings with your Supabase project URL and anon public key
-            const SUPABASE_URL = 'https://jkrnznmzcatlyhvihuua.supabase.co';
-            const SUPABASE_ANON_KEY = 'sb_publishable_iByYWvwuTGiK6qoATzQQWQ_9N_Uazox';
-            
-            let supabaseClient = null;
-            if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY' && window.supabase) {
-                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                document.getElementById('sync-status').textContent = 'SUPABASE CLOUD ACTIVE';
-            }
-
+        document.addEventListener('DOMContentLoaded', () => {
             // --- STATE MANAGEMENT ---
             let state = {
                 customFields: [],
@@ -388,7 +474,11 @@
                 activeFilterId: null,
                 editingFilterId: null,
                 isListExpanded: false,
-                isDarkMode: true
+                isDarkMode: true,
+                aftersalesHeaders: [],
+                aftersalesRecords: [],
+                aftersalesSearchTerm: '',
+                activeTab: 'collection' // 'collection' or 'aftersales'
             };
             
             // --- IMPORT STATE ---
@@ -399,10 +489,36 @@
             const APP_STORAGE_KEY = 'enterpriseDataManager';
             const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+            // --- VIEW TAB SWITCHER ---
+            const tabCollection = document.getElementById('tab-collection');
+            const tabAftersales = document.getElementById('tab-aftersales');
+            const viewCollectionContainer = document.getElementById('view-collection-container');
+            const viewAftersalesContainer = document.getElementById('view-aftersales-container');
+
+            function switchTab(tabName) {
+                state.activeTab = tabName;
+                if (tabName === 'collection') {
+                    tabCollection.className = "px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition bg-blue-600 text-white";
+                    tabAftersales.className = "px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition text-slate-400 hover:text-white";
+                    viewCollectionContainer.classList.remove('hidden');
+                    viewAftersalesContainer.classList.add('hidden');
+                } else {
+                    tabAftersales.className = "px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition bg-emerald-600 text-white";
+                    tabCollection.className = "px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition text-slate-400 hover:text-white";
+                    viewAftersalesContainer.classList.remove('hidden');
+                    viewCollectionContainer.classList.add('hidden');
+                    renderAftersalesCards();
+                }
+                saveState();
+            }
+
+            tabCollection.addEventListener('click', () => switchTab('collection'));
+            tabAftersales.addEventListener('click', () => switchTab('aftersales'));
+
             // --- DATE HELPER FUNCTION ---
             function getDaysElapsedText(dateStr) {
                 if (!dateStr) return '';
-                const parts = dateStr.split('-');
+                const parts = String(dateStr).split('-');
                 if (parts.length !== 3) return '';
                 
                 const targetDate = new Date(parts[0], parts[1] - 1, parts[2]);
@@ -474,29 +590,7 @@
                 activeConfirmCallback = null;
             });
 
-            async function loadState() {
-                // Try Supabase first if connected
-                if (supabaseClient) {
-                    try {
-                        const { data, error } = await supabaseClient
-                            .from('app_state')
-                            .select('*')
-                            .eq('id', 'main_state')
-                            .single();
-                        
-                        if (data && data.payload) {
-                            state = data.payload;
-                            if (typeof state.isDarkMode === 'undefined') state.isDarkMode = true;
-                            setTheme(state.isDarkMode);
-                            localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state));
-                            return;
-                        }
-                    } catch (err) {
-                        console.warn('Supabase load fallback to localStorage:', err);
-                    }
-                }
-
-                // Fallback to localStorage
+            function loadState() {
                 const savedState = localStorage.getItem(APP_STORAGE_KEY);
                 if (savedState) {
                     state = JSON.parse(savedState);
@@ -506,6 +600,7 @@
                             key: fieldKey,
                             type: 'text'
                         }));
+                        saveState();
                     }
                     
                     if (typeof state.savedFilters === 'undefined') state.savedFilters = [];
@@ -513,8 +608,13 @@
                     if (typeof state.editingFilterId === 'undefined') state.editingFilterId = null;
                     if (typeof state.isListExpanded === 'undefined') state.isListExpanded = false;
                     if (typeof state.isDarkMode === 'undefined') state.isDarkMode = true;
+                    if (typeof state.aftersalesHeaders === 'undefined') state.aftersalesHeaders = [];
+                    if (typeof state.aftersalesRecords === 'undefined') state.aftersalesRecords = [];
+                    if (typeof state.aftersalesSearchTerm === 'undefined') state.aftersalesSearchTerm = '';
+                    if (typeof state.activeTab === 'undefined') state.activeTab = 'collection';
 
                     setTheme(state.isDarkMode);
+                    switchTab(state.activeTab);
 
                     if (state.establishments) {
                         state.establishments.forEach(est => {
@@ -534,26 +634,19 @@
                         activeFilterId: null,
                         editingFilterId: null,
                         isListExpanded: false,
-                        isDarkMode: true
+                        isDarkMode: true,
+                        aftersalesHeaders: [],
+                        aftersalesRecords: [],
+                        aftersalesSearchTerm: '',
+                        activeTab: 'collection'
                     };
                     setTheme(true);
+                    switchTab('collection');
                 }
             }
 
-            async function saveState() {
-                // Save locally immediately for offline-first responsiveness
+            function saveState() {
                 localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state));
-
-                // Sync to Supabase in the background if active
-                if (supabaseClient) {
-                    try {
-                        await supabaseClient
-                            .from('app_state')
-                            .upsert({ id: 'main_state', payload: state, updated_at: new Date() });
-                    } catch (err) {
-                        console.warn('Supabase sync background error:', err);
-                    }
-                }
             }
 
             // --- DOM ELEMENTS ---
@@ -565,6 +658,8 @@
             const editModalForm = document.getElementById('details-form');
             const viewModal = document.getElementById('view-details-modal');
             const viewModalContent = document.getElementById('view-details-modal-content');
+            const aftersalesModal = document.getElementById('aftersales-details-modal');
+            const aftersalesModalContent = document.getElementById('aftersales-details-modal-content');
             const filterModal = document.getElementById('filter-modal');
             const filterForm = document.getElementById('filter-form');
             const searchInput = document.getElementById('search-input');
@@ -643,7 +738,7 @@
             
             const formatValueWithBrackets = (value) => {
                 if (!value) return '—';
-                const escapedValue = value.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const escapedValue = String(value).replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 const regex = /\[(.*?)\]/g;
                 if (!escapedValue.includes('[')) return escapedValue;
 
@@ -657,6 +752,7 @@
             function render() {
                 renderCustomFields();
                 renderEstablishments();
+                renderAftersalesCards();
                 document.body.classList.remove('dragging');
             }
 
@@ -899,6 +995,526 @@
                     </div>
                 `;
             }
+
+            // --- AFTERSALES RECHECKING RENDER, DYNAMIC COLUMN INGESTION & EXCEL HIGHLIGHT EXPORT ---
+            const aftersalesFileInput = document.getElementById('aftersales-file-input');
+            const uploadAftersalesBtn = document.getElementById('upload-aftersales-btn');
+            const exportAftersalesExcelBtn = document.getElementById('export-aftersales-excel-btn');
+            const clearAftersalesBtn = document.getElementById('clear-aftersales-btn');
+            const aftersalesSearchInput = document.getElementById('aftersales-search-input');
+            const aftersalesCardsContainer = document.getElementById('aftersales-cards-container');
+            const aftersalesStats = document.getElementById('aftersales-stats');
+
+            uploadAftersalesBtn.addEventListener('click', () => { aftersalesFileInput.click(); });
+
+            clearAftersalesBtn.addEventListener('click', () => {
+                if (!state.aftersalesRecords || state.aftersalesRecords.length === 0) {
+                    showToast("NO AFTERSALES DATA TO CLEAR");
+                    return;
+                }
+                showConfirmModal(
+                    "Erase All Aftersales Records",
+                    "Are you sure you want to permanently erase all loaded aftersales records?",
+                    () => {
+                        state.aftersalesHeaders = [];
+                        state.aftersalesRecords = [];
+                        state.aftersalesSearchTerm = '';
+                        saveState();
+                        renderAftersalesCards();
+                        showToast("ALL AFTERSALES DATA ERASED");
+                    }
+                );
+            });
+
+            // Helper to resolve specific header keys while strictly preserving input order
+            function getFieldByMatchingKeys(detailsObj, possibleKeys) {
+                if (!detailsObj) return '—';
+                const lowerObj = {};
+                Object.keys(detailsObj).forEach(k => {
+                    lowerObj[k.trim().toLowerCase()] = detailsObj[k];
+                });
+                for (let key of possibleKeys) {
+                    const matchKey = key.trim().toLowerCase();
+                    if (lowerObj[matchKey] !== undefined && lowerObj[matchKey] !== null && String(lowerObj[matchKey]).trim() !== '') {
+                        return String(lowerObj[matchKey]);
+                    }
+                }
+                return '—';
+            }
+
+            // 1. Dynamic Column Ingestion (Does NOT default to unresolved)
+            aftersalesFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = new Uint8Array(event.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        const rawJson = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        if (!rawJson || rawJson.length === 0) {
+                            showToast("EXCEL FILE IS EMPTY");
+                            return;
+                        }
+
+                        // Headers array maintains exact input order from uploaded sheet
+                        const headers = rawJson[0].map(h => String(h || '').trim()).filter(h => h.length > 0);
+                        const dataRows = rawJson.slice(1);
+
+                        state.aftersalesHeaders = headers;
+                        state.aftersalesRecords = dataRows.map((row, index) => {
+                            const detailsObj = {};
+                            headers.forEach((h, colIdx) => {
+                                detailsObj[h] = row[colIdx] !== undefined && row[colIdx] !== null ? String(row[colIdx]) : '—';
+                            });
+
+                            // Extract Merchant Name & DBA Name
+                            const merchantName = getFieldByMatchingKeys(detailsObj, ['Merchant Name', 'MERCHANT NAME', 'Merchant', 'CLIENT', 'Client', headers[0]]);
+                            const dbaName = getFieldByMatchingKeys(detailsObj, ['DBA Name', 'DBA NAME', 'DBA', 'Trading Name', 'Business Name']);
+
+                            return {
+                                id: `aftersales_${index}_${Date.now()}`,
+                                merchantName: merchantName,
+                                dbaName: dbaName,
+                                details: detailsObj,
+                                status: 'None' // Does not default to unresolved
+                            };
+                        });
+
+                        saveState();
+                        renderAftersalesCards();
+                        showToast(`SUCCESS: ${state.aftersalesRecords.length} AFTERSALES RECORDS LOADED`);
+                    } catch (err) {
+                        showToast(`ERROR PARSING EXCEL: ${err.message}`);
+                    } finally {
+                        aftersalesFileInput.value = null;
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+
+            aftersalesSearchInput.addEventListener('input', (e) => {
+                state.aftersalesSearchTerm = e.target.value;
+                renderAftersalesCards();
+            });
+
+            // 2. Interactive Status Tagging & Card Highlighting Render
+            function renderAftersalesCards() {
+                if (!aftersalesCardsContainer) return;
+                const searchTerm = state.aftersalesSearchTerm.toLowerCase().trim();
+                let records = state.aftersalesRecords;
+
+                if (searchTerm) {
+                    records = records.filter(r => 
+                        String(r.merchantName).toLowerCase().includes(searchTerm) ||
+                        String(r.dbaName).toLowerCase().includes(searchTerm) ||
+                        Object.values(r.details || {}).some(val => String(val).toLowerCase().includes(searchTerm)) ||
+                        String(r.status).toLowerCase().includes(searchTerm)
+                    );
+                }
+
+                aftersalesStats.textContent = `Records Loaded: ${state.aftersalesRecords.length}`;
+
+                if (state.aftersalesRecords.length === 0) {
+                    aftersalesCardsContainer.innerHTML = `
+                        <div class="corporate-panel-inner border-2 border-dashed rounded-xl p-10 text-center">
+                            <p class="uppercase tracking-wider text-xs font-bold text-slate-400">NO AFTERSALES REPORT LOADED</p>
+                            <p class="text-[11px] uppercase mt-1 font-semibold text-slate-500">Click "Upload Excel" above to ingest row 1 headers & record columns.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (records.length === 0) {
+                    aftersalesCardsContainer.innerHTML = `
+                        <div class="corporate-panel-inner border border-red-500 rounded-xl p-8 text-center">
+                            <p class="uppercase tracking-wider text-xs font-extrabold">NO MATCH FOUND FOR "${state.aftersalesSearchTerm}"</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                aftersalesCardsContainer.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${records.map(r => {
+                            const isResolved = r.status === 'Resolved';
+                            const isUnresolved = r.status === 'Unresolved';
+
+                            let cardHighlightClass = 'card-none';
+                            let statusBadgeClass = 'bg-slate-500/20 text-slate-400 border-slate-500';
+
+                            if (isResolved) {
+                                cardHighlightClass = 'card-resolved';
+                                statusBadgeClass = 'bg-emerald-500/20 text-emerald-600 border-emerald-500';
+                            } else if (isUnresolved) {
+                                cardHighlightClass = 'card-unresolved';
+                                statusBadgeClass = 'bg-red-500/20 text-red-600 border-red-500';
+                            }
+
+                            // Render details using EXACT order of headers array input
+                            const headersToRender = state.aftersalesHeaders.length > 0 
+                                ? state.aftersalesHeaders 
+                                : Object.keys(r.details || {});
+
+                            return `
+                            <div class="corporate-panel-inner p-4 rounded-xl border flex flex-col justify-between space-y-3 shadow-sm hover:border-blue-500/40 transition ${cardHighlightClass}">
+                                <div class="border-b pb-2">
+                                    <div class="flex justify-between items-start gap-2">
+                                        <div class="cursor-pointer flex-grow overflow-hidden" data-action="expand-aftersales-record" data-id="${r.id}" title="Click to view expanded record window">
+                                            <h3 class="font-bold text-xs uppercase tracking-wider text-blue-600 truncate hover:underline">${r.merchantName || '—'}</h3>
+                                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">DBA: ${r.dbaName || '—'}</p>
+                                        </div>
+                                        <span class="text-[9px] font-extrabold px-2 py-0.5 rounded border uppercase tracking-widest flex-shrink-0 ${statusBadgeClass}">
+                                            ${r.status && r.status !== 'None' ? r.status : 'UNTAGGED'}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-1.5 text-[11px] font-medium max-h-52 overflow-y-auto pr-1">
+                                    ${headersToRender.map(key => {
+                                        const val = r.details[key] !== undefined ? r.details[key] : '—';
+                                        const safeVal = String(val).replace(/"/g, '&quot;');
+                                        return `
+                                        <div class="flex justify-between items-start gap-2 py-0.5 border-b border-slate-800/20">
+                                            <span class="text-slate-400 font-bold uppercase text-[10px] flex-shrink-0 w-28 truncate" title="${key}">${key}:</span>
+                                            <span 
+                                                class="font-bold uppercase break-all text-right cursor-pointer hover:bg-blue-500/20 hover:text-blue-600 rounded px-1 transition duration-100" 
+                                                data-action="copy-single-aftersales" 
+                                                data-value="${safeVal}" 
+                                                data-field-name="${key}"
+                                                title="Click to copy '${safeVal}'"
+                                            >${val}</span>
+                                        </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+
+                                <!-- Status Controls & Copy Action -->
+                                <div class="flex items-center justify-between pt-2 border-t gap-2">
+                                    <div class="flex items-center gap-1">
+                                        <button 
+                                            data-action="set-status" 
+                                            data-id="${r.id}" 
+                                            data-status="Resolved" 
+                                            class="px-2.5 py-1 rounded text-[10px] font-bold uppercase transition ${isResolved ? 'bg-emerald-600 text-white' : 'border hover:bg-emerald-500/20 text-emerald-600'}"
+                                        >
+                                            Resolved
+                                        </button>
+                                        <button 
+                                            data-action="set-status" 
+                                            data-id="${r.id}" 
+                                            data-status="Unresolved" 
+                                            class="px-2.5 py-1 rounded text-[10px] font-bold uppercase transition ${isUnresolved ? 'bg-red-600 text-white' : 'border hover:bg-red-500/20 text-red-600'}"
+                                        >
+                                            Unresolved
+                                        </button>
+                                    </div>
+
+                                    <div class="flex gap-1">
+                                        <button data-action="expand-aftersales-record" data-id="${r.id}" class="px-2.5 py-1 border rounded text-[10px] font-bold uppercase tracking-wider hover:bg-slate-200 transition" title="Expand View">
+                                            Expand
+                                        </button>
+                                        <button data-action="copy-aftersales" data-id="${r.id}" class="px-2.5 py-1 border rounded text-[10px] font-bold uppercase tracking-wider hover:bg-slate-200 transition">
+                                            Copy
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+
+            // Expanded Window Renderer with Interactive Field Filtering for Aftersales Records
+            function renderAftersalesExpandedModal(recordId) {
+                const rec = state.aftersalesRecords.find(r => r.id === recordId);
+                if (!rec) return;
+
+                const isResolved = rec.status === 'Resolved';
+                const isUnresolved = rec.status === 'Unresolved';
+
+                let statusBadgeClass = 'bg-slate-500/20 text-slate-400 border-slate-500';
+                if (isResolved) statusBadgeClass = 'bg-emerald-500/20 text-emerald-600 border-emerald-500';
+                if (isUnresolved) statusBadgeClass = 'bg-red-500/20 text-red-600 border-red-500';
+
+                const headersToRender = state.aftersalesHeaders.length > 0 
+                    ? state.aftersalesHeaders 
+                    : Object.keys(rec.details || {});
+
+                aftersalesModalContent.innerHTML = `
+                    <div class="flex justify-between items-start border-b pb-3 mb-3 gap-4">
+                        <div>
+                            <span class="text-[9px] text-emerald-600 uppercase tracking-wider font-extrabold border border-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded-md">AFTERSALES RECORD DETAILED VIEW</span>
+                            <h3 class="text-xl font-bold uppercase tracking-wider text-blue-600 mt-1">${rec.merchantName || '—'}</h3>
+                            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">DBA: ${rec.dbaName || '—'}</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] font-extrabold px-3 py-1 rounded border uppercase tracking-widest ${statusBadgeClass}">
+                                ${rec.status && rec.status !== 'None' ? rec.status : 'UNTAGGED'}
+                            </span>
+                            <button data-action="close-aftersales-modal" class="transition text-2xl font-bold leading-none">&times;</button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <input
+                            id="aftersales-modal-filter-input"
+                            type="text"
+                            placeholder="FILTER EXPANDED FIELD SPECIFICATIONS..."
+                            class="w-full p-2.5 border rounded-lg focus:outline-none focus:border-emerald-600 text-xs uppercase font-bold"
+                        />
+                    </div>
+
+                    <div id="aftersales-modal-fields-container" class="space-y-2 max-h-[55vh] overflow-y-auto pr-2 my-2">
+                        ${headersToRender.map(key => {
+                            const val = rec.details[key] !== undefined ? rec.details[key] : '—';
+                            const safeVal = String(val).replace(/"/g, '&quot;');
+                            const searchableText = `${key}: ${val}`.toLowerCase().replace(/"/g, '&quot;');
+                            return `
+                                <div class="flex items-center justify-between p-2.5 rounded-lg border corporate-panel-inner hover:border-blue-500/30 transition" data-searchable-text="${searchableText}">
+                                    <span class="font-bold text-xs uppercase text-slate-400 w-1/3 truncate" title="${key}">${key}:</span>
+                                    <span 
+                                        class="font-bold text-xs uppercase break-all w-2/3 text-right cursor-pointer hover:bg-blue-500/20 hover:text-blue-600 rounded px-2 py-0.5 transition"
+                                        data-action="copy-single-aftersales" 
+                                        data-value="${safeVal}" 
+                                        data-field-name="${key}"
+                                        title="Click to copy '${safeVal}'"
+                                    >${val}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <div class="flex flex-wrap justify-between items-center pt-4 border-t gap-3">
+                        <div class="flex gap-2">
+                            <button 
+                                data-action="set-status" 
+                                data-id="${rec.id}" 
+                                data-status="Resolved" 
+                                class="px-3 py-1.5 rounded text-xs font-bold uppercase transition ${isResolved ? 'bg-emerald-600 text-white' : 'border hover:bg-emerald-500/20 text-emerald-600'}"
+                            >
+                                Mark Resolved
+                            </button>
+                            <button 
+                                data-action="set-status" 
+                                data-id="${rec.id}" 
+                                data-status="Unresolved" 
+                                class="px-3 py-1.5 rounded text-xs font-bold uppercase transition ${isUnresolved ? 'bg-red-600 text-white' : 'border hover:bg-red-500/20 text-red-600'}"
+                            >
+                                Mark Unresolved
+                            </button>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button data-action="copy-aftersales" data-id="${rec.id}" class="px-4 py-1.5 border rounded text-xs font-bold uppercase tracking-wider hover:bg-slate-200 transition">
+                                Copy All Fields
+                            </button>
+                            <button data-action="close-aftersales-modal" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold uppercase tracking-wider transition">
+                                Close Window
+                            </button>
+                        </div>
+                    </div>
+                `;
+                aftersalesModal.classList.remove('hidden');
+                document.getElementById('aftersales-modal-filter-input')?.focus();
+            }
+
+            aftersalesModal.addEventListener('input', (e) => {
+                if (e.target && e.target.id === 'aftersales-modal-filter-input') {
+                    const filterTerm = e.target.value.toLowerCase().trim();
+                    const fieldsContainer = document.getElementById('aftersales-modal-fields-container');
+                    if (!fieldsContainer) return;
+
+                    const allRows = fieldsContainer.querySelectorAll('[data-searchable-text]');
+                    let firstMatch = null;
+
+                    allRows.forEach(rowEl => {
+                        rowEl.classList.remove('search-highlight');
+                        const rowText = rowEl.dataset.searchableText;
+                        if (filterTerm && rowText.includes(filterTerm)) {
+                            rowEl.classList.add('search-highlight');
+                            if (!firstMatch) firstMatch = rowEl;
+                        }
+                    });
+
+                    if (firstMatch) {
+                        firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            });
+
+            aftersalesModal.addEventListener('click', (e) => {
+                if (e.target === aftersalesModal || e.target.closest('[data-action="close-aftersales-modal"]')) {
+                    aftersalesModal.classList.add('hidden');
+                }
+            });
+
+            aftersalesCardsContainer.addEventListener('click', (e) => {
+                const statusBtn = e.target.closest('[data-action="set-status"]');
+                if (statusBtn) {
+                    const id = statusBtn.dataset.id;
+                    const newStatus = statusBtn.dataset.status;
+                    const rec = state.aftersalesRecords.find(r => r.id === id);
+                    if (rec) {
+                        rec.status = newStatus;
+                        saveState();
+                        renderAftersalesCards();
+                        if (!aftersalesModal.classList.contains('hidden')) {
+                            renderAftersalesExpandedModal(id);
+                        }
+                        showToast(`STATUS SET TO ${newStatus.toUpperCase()}`);
+                    }
+                    return;
+                }
+
+                const expandBtn = e.target.closest('[data-action="expand-aftersales-record"]');
+                if (expandBtn) {
+                    const id = expandBtn.dataset.id;
+                    renderAftersalesExpandedModal(id);
+                    return;
+                }
+
+                const singleCopyBtn = e.target.closest('[data-action="copy-single-aftersales"]');
+                if (singleCopyBtn) {
+                    const val = singleCopyBtn.dataset.value;
+                    const fieldName = singleCopyBtn.dataset.fieldName;
+                    if (val && val !== '—') {
+                        copyToClipboard(val, `${fieldName || 'DATA'} COPIED TO CLIPBOARD`);
+                    }
+                    return;
+                }
+
+                const copyBtn = e.target.closest('[data-action="copy-aftersales"]');
+                if (copyBtn) {
+                    const id = copyBtn.dataset.id;
+                    const rec = state.aftersalesRecords.find(r => r.id === id);
+                    if (!rec) return;
+
+                    let text = `// AFTERSALES REPORT - ${rec.merchantName.toUpperCase()}\n`;
+                    text += `DBA NAME: ${rec.dbaName}\n`;
+                    text += `STATUS: ${rec.status}\n`;
+                    
+                    const headersToCopy = state.aftersalesHeaders.length > 0 
+                        ? state.aftersalesHeaders 
+                        : Object.keys(rec.details || {});
+
+                    headersToCopy.forEach(k => {
+                        text += `${k}: ${rec.details[k] || '—'}\n`;
+                    });
+
+                    copyToClipboard(text, "Aftersales record details copied!");
+                }
+            });
+
+            aftersalesModal.addEventListener('click', (e) => {
+                const singleCopyBtn = e.target.closest('[data-action="copy-single-aftersales"]');
+                if (singleCopyBtn) {
+                    const val = singleCopyBtn.dataset.value;
+                    const fieldName = singleCopyBtn.dataset.fieldName;
+                    if (val && val !== '—') {
+                        copyToClipboard(val, `${fieldName || 'DATA'} COPIED TO CLIPBOARD`);
+                    }
+                    return;
+                }
+
+                const statusBtn = e.target.closest('[data-action="set-status"]');
+                if (statusBtn) {
+                    const id = statusBtn.dataset.id;
+                    const newStatus = statusBtn.dataset.status;
+                    const rec = state.aftersalesRecords.find(r => r.id === id);
+                    if (rec) {
+                        rec.status = newStatus;
+                        saveState();
+                        renderAftersalesCards();
+                        renderAftersalesExpandedModal(id);
+                        showToast(`STATUS SET TO ${newStatus.toUpperCase()}`);
+                    }
+                    return;
+                }
+
+                const copyBtn = e.target.closest('[data-action="copy-aftersales"]');
+                if (copyBtn) {
+                    const id = copyBtn.dataset.id;
+                    const rec = state.aftersalesRecords.find(r => r.id === id);
+                    if (!rec) return;
+
+                    let text = `// AFTERSALES REPORT - ${rec.merchantName.toUpperCase()}\n`;
+                    text += `DBA NAME: ${rec.dbaName}\n`;
+                    text += `STATUS: ${rec.status}\n`;
+                    
+                    const headersToCopy = state.aftersalesHeaders.length > 0 
+                        ? state.aftersalesHeaders 
+                        : Object.keys(rec.details || {});
+
+                    headersToCopy.forEach(k => {
+                        text += `${k}: ${rec.details[k] || '—'}\n`;
+                    });
+
+                    copyToClipboard(text, "Aftersales record details copied!");
+                }
+            });
+
+            // 3. Export with Working Cell Color-Coded Highlighting (NO added status column)
+            exportAftersalesExcelBtn.addEventListener('click', () => {
+                if (!state.aftersalesRecords || state.aftersalesRecords.length === 0) {
+                    showToast("NO AFTERSALES RECORDS TO EXPORT");
+                    return;
+                }
+
+                try {
+                    // Strictly keep existing headers; do NOT add a status column
+                    const headers = [...state.aftersalesHeaders];
+                    const dataArray = [headers];
+
+                    state.aftersalesRecords.forEach(rec => {
+                        const row = state.aftersalesHeaders.map(h => rec.details[h] || '—');
+                        dataArray.push(row);
+                    });
+
+                    const worksheet = XLSX.utils.aoa_to_sheet(dataArray);
+                    const range = XLSX.utils.decode_range(worksheet['!ref']);
+
+                    // Color code rows based on record status
+                    for (let R = 1; R <= range.e.r; ++R) {
+                        const rec = state.aftersalesRecords[R - 1];
+                        const status = rec ? rec.status : 'None';
+
+                        // Light Green (#D1FAE5) for Resolved, Light Red (#FEE2E2) for Unresolved
+                        let fillColor = null;
+                        if (status === 'Resolved') fillColor = "D1FAE5";
+                        if (status === 'Unresolved') fillColor = "FEE2E2";
+
+                        for (let C = 0; C <= range.e.c; ++C) {
+                            const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+                            if (!worksheet[cellRef]) worksheet[cellRef] = { t: 's', v: '' };
+
+                            worksheet[cellRef].s = {
+                                fill: fillColor ? {
+                                    patternType: "solid",
+                                    fgColor: { rgb: fillColor }
+                                } : undefined,
+                                font: {
+                                    name: "Calibri",
+                                    sz: 11
+                                }
+                            };
+                        }
+                    }
+
+                    const workbook = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(workbook, worksheet, "Aftersales Rechecking");
+
+                    XLSX.writeFile(workbook, "AFTERSALES_RECHECKING_HIGHLIGHTED.xlsx");
+                    showToast("EXCEL EXPORTED WITH COLOR HIGHLIGHTS");
+                } catch (err) {
+                    showToast(`EXPORT FAILED: ${err.message}`);
+                }
+            });
 
             function renderInputFieldTreeHTML(nodes) {
                 let html = '';
@@ -1971,7 +2587,6 @@
             function performImportReplace(payload) {
                 const importedEstablishments = payload.establishments || [];
                 const importedFields = payload.fieldOrder || [];
-                const importedFilters = payload.savedFilters || [];
 
                 state.establishments = [];
                 state.customFields = [];
@@ -2099,9 +2714,16 @@
             });
 
             // --- INITIALIZATION ---
-            await loadState();
+            loadState();
             render();
         });
     </script>
 </body>
 </html>
+```eof
+
+### Summary of Changes:
+1. **Excel Column Header Integrity:** Standardized Aftersales Excel exports so extra status columns are **not** appended to exported files.
+2. **Upload Default Status:** Uploaded records now initialize with an untagged state (`'None'`) instead of defaulting to `'Unresolved'`.
+3. **Working Cell Color-Coding:** Swapped the library runtime to `xlsx-js-style` and explicitly passed solid fill patterns so cell backgrounds highlight correctly when exported.
+4. **Expanded View Filtering:** Integrated an interactive search filter into the expanded record window to quickly isolate and highlight specific field rows.
