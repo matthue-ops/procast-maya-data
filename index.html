@@ -2695,10 +2695,43 @@
                 }
             });
 
+            // Aftersales backup compatibility: older JSON exports have no aftersales keys.
+            function validateAftersalesBackup(payload) {
+                if (payload.aftersalesHeaders !== undefined && !Array.isArray(payload.aftersalesHeaders)) throw new Error('Invalid aftersales headers.');
+                if (payload.aftersalesRecords !== undefined && !Array.isArray(payload.aftersalesRecords)) throw new Error('Invalid aftersales records.');
+                if ((payload.aftersalesRecords || []).some(r => !r || typeof r !== 'object' || Array.isArray(r))) throw new Error('Invalid aftersales record.');
+            }
+
+            function mergeAftersalesBackup(payload) {
+                const incoming = payload.aftersalesRecords || [];
+                const existing = state.aftersalesRecords || [];
+                const headers = new Set(state.aftersalesHeaders || []);
+                (payload.aftersalesHeaders || []).forEach(h => headers.add(h));
+                incoming.forEach(r => Object.keys(r.details || {}).forEach(h => headers.add(h)));
+                state.aftersalesHeaders = [...headers];
+                // Prefer the persistent record ID; use a stable content signature for legacy records.
+                const signature = r => JSON.stringify([r.merchantName || '', r.dbaName || '', r.details || {}]);
+                const existingIds = new Set(existing.filter(r => r.id != null).map(r => String(r.id)));
+                const existingSignatures = new Set(existing.map(signature));
+                let count = 0;
+                incoming.forEach(r => {
+                    const sig = signature(r);
+                    if ((r.id != null && existingIds.has(String(r.id))) || existingSignatures.has(sig)) return;
+                    const record = { ...r, id: r.id != null ? r.id : generateId() };
+                    existing.push(record);
+                    existingIds.add(String(record.id));
+                    existingSignatures.add(sig);
+                    count++;
+                });
+                state.aftersalesRecords = existing;
+                return count;
+            }
+
             function performImportMerge(payload) {
                 const importedEstablishments = payload.establishments || [];
                 const importedFields = payload.fieldOrder || [];
                 const importedFilters = payload.savedFilters || [];
+                validateAftersalesBackup(payload);
 
                 if (!Array.isArray(importedEstablishments)) throw new Error("Invalid format.");
                 if (!Array.isArray(importedFields)) throw new Error("Invalid format.");
@@ -2732,14 +2765,17 @@
                     }
                 });
 
+                const aftersalesCount = mergeAftersalesBackup(payload);
                 saveState();
                 render();
-                showToast(`SUCCESS: ${importedEstCount} RECORDS IMPORTED & SYNCED`);
+                showToast(`SUCCESS: ${importedEstCount} RECORDS & ${aftersalesCount} AFTERSALES RECORDS IMPORTED & SYNCED`);
             }
 
             function performImportReplace(payload) {
                 const importedEstablishments = payload.establishments || [];
                 const importedFields = payload.fieldOrder || [];
+                validateAftersalesBackup(payload);
+                if (!Array.isArray(importedEstablishments) || !Array.isArray(importedFields)) throw new Error('Invalid format.');
 
                 state.establishments = [];
                 state.customFields = [];
@@ -2767,9 +2803,14 @@
                     }
                 });
                 
+                // Legacy backups did not contain aftersales: do not silently erase that module.
+                if (payload.aftersalesHeaders !== undefined || payload.aftersalesRecords !== undefined) {
+                    state.aftersalesHeaders = [...(payload.aftersalesHeaders || [])];
+                    state.aftersalesRecords = (payload.aftersalesRecords || []).map(r => ({ ...r, id: r.id != null ? r.id : generateId() }));
+                }
                 saveState();
                 render();
-                showToast(`DATABASE REPLACED: ${importedEstCount} RECORDS & SYNCED`);
+                showToast(`DATABASE REPLACED: ${importedEstCount} RECORDS & ${state.aftersalesRecords.length} AFTERSALES RECORDS SYNCED`);
             }
 
             const importBtn = document.getElementById('import-btn');
@@ -2826,7 +2867,7 @@
             });
 
             exportBtn.addEventListener('click', () => {
-                if (state.establishments.length === 0 && state.customFields.length === 0) {
+                if (state.establishments.length === 0 && state.customFields.length === 0 && (!state.aftersalesRecords || state.aftersalesRecords.length === 0) && (!state.aftersalesHeaders || state.aftersalesHeaders.length === 0)) {
                     showToast('No data to export!');
                     return;
                 }
@@ -2851,6 +2892,8 @@
                         };
                     }),
                     savedFilters: state.savedFilters,
+                    aftersalesHeaders: state.aftersalesHeaders || [],
+                    aftersalesRecords: state.aftersalesRecords || [],
                 };
 
                 const jsonString = JSON.stringify(exportData, null, 2);
