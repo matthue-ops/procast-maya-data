@@ -21,13 +21,17 @@ window.createMayaSync = async function ({ client, getState, applyState, canRefre
     const saveButton = document.getElementById('save-device-btn');
     const cloudButton = document.getElementById('use-cloud-btn');
     const replaceButton = document.getElementById('replace-cloud-btn');
+    const deviceInput = document.getElementById('device-name-input');
+    const deviceFeedback = document.getElementById('device-name-feedback');
+    const sourceName = payload => typeof payload?._syncSource?.deviceName === 'string'
+        ? payload._syncSource.deviceName.trim().slice(0, 40) || 'Unknown device' : 'Unknown device';
     const downloadButton = document.getElementById('download-local-btn');
     document.getElementById('app').inert = true;
     let db, record, message = '', conflict = false, busy = false, durable = false, adopting = false;
     let chain = Promise.resolve();
     let lastSignature;
     const formatTime = value => value ? new Intl.DateTimeFormat(undefined, {
-        dateStyle: 'medium', timeStyle: 'long'
+        dateStyle: 'medium', timeStyle: 'short'
     }).format(new Date(value)) : 'Not available';
     function display() {
         status.textContent = message || (conflict ? 'Newer cloud data available — choose a version below'
@@ -35,7 +39,10 @@ window.createMayaSync = async function ({ client, getState, applyState, canRefre
                 ? 'Saved on this device — waiting to sync' : 'Saved on this device — offline')
                 : record?.revision != null ? 'Saved to cloud' : 'Cloud version not verified');
         localTime.textContent = `Local edit: ${formatTime(record?.localEditedAt)}`;
-        cloudTime.textContent = `Cloud saved: ${formatTime(record?.cloudSavedAt)}`;
+        cloudTime.textContent = record?.cloudSavedAt
+            ? `Last cloud update: ${formatTime(record.cloudSavedAt)} · ${record.cloudDeviceName || 'Unknown device'}`
+            : 'Cloud update: Not available';
+        cloudTime.title = `Times shown in ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
         cloudButton.hidden = replaceButton.hidden = !conflict;
         saveButton.disabled = !durable || adopting;
     }
@@ -61,6 +68,7 @@ window.createMayaSync = async function ({ client, getState, applyState, canRefre
         } catch (error) {
             durable = false;
             message = 'Local save failed — download a backup now. Cloud sync paused.';
+            document.getElementById('sync-options').open = true;
             display();
             return false;
         }
@@ -133,6 +141,7 @@ window.createMayaSync = async function ({ client, getState, applyState, canRefre
         record.state.editingFilterId = null;
         record.revision = cloud.revision;
         record.cloudSavedAt = cloud.updated_at;
+        record.cloudDeviceName = sourceName(cloud.payload);
         record.dirty = false;
         record.pending = null;
         document.getElementById('app').inert = true;
@@ -166,12 +175,14 @@ window.createMayaSync = async function ({ client, getState, applyState, canRefre
                 if (data.status === 'conflict') {
                     conflict = true;
                     record.cloudSavedAt = data.current_updated_at;
+                    record.cloudDeviceName = 'Unknown device';
                     await persist();
                     return;
                 }
                 if (!/^\d+$/.test(data.saved_revision)) throw new Error('Invalid saved revision');
                 record.revision = data.saved_revision;
                 record.cloudSavedAt = data.saved_at;
+                record.cloudDeviceName = sourceName(pending.p_payload);
                 record.dirty = signature(record.state) !== signature(pending.p_payload);
                 record.pending = null;
                 if (!await persist()) return;
@@ -183,6 +194,8 @@ window.createMayaSync = async function ({ client, getState, applyState, canRefre
                 }
             }
             const cloud = await readCloud();
+            record.cloudDeviceName = sourceName(cloud.payload);
+            record.cloudSavedAt = cloud.updated_at;
             if (!record.dirty) {
                 if (record.revision !== cloud.revision) {
                     if (canRefresh()) await adoptCloud(cloud);
@@ -192,6 +205,7 @@ window.createMayaSync = async function ({ client, getState, applyState, canRefre
             }
             if (record.revision === null || record.revision !== cloud.revision) {
                 record.cloudSavedAt = cloud.updated_at;
+                record.cloudDeviceName = sourceName(cloud.payload);
                 conflict = true;
                 await persist();
                 return;
@@ -199,7 +213,8 @@ window.createMayaSync = async function ({ client, getState, applyState, canRefre
             record.pending = {
                 p_expected_revision: record.revision,
                 p_request_id: crypto.randomUUID(),
-                p_payload: dataOnly(clone(record.state))
+                p_payload: { ...dataOnly(clone(record.state)),
+                    _syncSource: { deviceName: record.deviceName } }
             };
             if (!await persist()) return;
             // Queue another pass, allowing pending edits to be durably captured first.
@@ -220,6 +235,21 @@ window.createMayaSync = async function ({ client, getState, applyState, canRefre
         },
         refresh() { return enqueue(sync); }
     };
+    document.getElementById('save-device-name-btn').addEventListener('click', () => enqueue(async () => {
+        if (!record || !durable) return;
+        const name = deviceInput.value.trim();
+        if (!name || name.length > 40) {
+            deviceFeedback.textContent = 'Enter a name between 1 and 40 characters.';
+            return;
+        }
+        const previous = record.deviceName;
+        record.deviceName = name;
+        if (!await persist()) { record.deviceName = previous; return; }
+        deviceInput.value = name;
+        deviceFeedback.textContent = 'Device name saved. It will appear on your next data update.';
+        // Naming a device does not make the dataset newer or create a cloud write.
+        display();
+    }));
     saveButton.addEventListener('click', () => api.save());
     document.getElementById('sync-now-btn').addEventListener('click', () => {
         // A retry after a storage failure must re-persist before any cloud operation.
@@ -237,6 +267,7 @@ window.createMayaSync = async function ({ client, getState, applyState, canRefre
         const previous = clone(record);
         record.revision = cloud.revision;
         record.cloudSavedAt = cloud.updated_at;
+        record.cloudDeviceName = sourceName(cloud.payload);
         record.pending = null;
         record.dirty = true;
         if (!await persist({ local: previous, cloud })) { record = previous; return; }
@@ -279,6 +310,8 @@ window.createMayaSync = async function ({ client, getState, applyState, canRefre
             record = { state: legacy || clone(getState()), revision: null,
                 dirty: !!legacy, localEditedAt: null, cloudSavedAt: null, pending: null };
         }
+        record.deviceName ||= /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 'My Phone' : 'My PC';
+        deviceInput.value = record.deviceName;
         lastSignature = signature(record.state);
         if (!await persist()) throw new Error('Cannot initialize durable storage');
         applyState(clone(record.state));

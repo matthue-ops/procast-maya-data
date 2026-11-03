@@ -123,21 +123,65 @@
         .card-none {
             border-color: #64748b !important;
         }
+
+        /* Compact sync controls; independent of CDN styles. */
+        .sync-panel, .sync-panel * { box-sizing: border-box; }
+        .sync-panel { max-width: 1216px; margin: 12px auto 0; padding: 12px 16px; border-radius: 12px; }
+        .sync-summary, .sync-actions, .sync-device-editor { display: flex; align-items: center; gap: 10px; }
+        .sync-summary { justify-content: space-between; }
+        .sync-copy { min-width: 0; overflow-wrap: anywhere; }
+        #sync-status { font-size: 13px; }
+        .sync-caption { display: block; font-size: 12px; opacity: .8; margin-top: 4px; }
+        .sync-panel button, #sync-options summary { font: inherit; font-size: 12px; padding: 8px 12px; border: 1px solid #64748b; border-radius: 7px; cursor: pointer; }
+        .sync-panel button { background: transparent; color: inherit; }
+        .sync-panel .sync-primary { background: #2563eb; color: #fff; border-color: #2563eb; white-space: nowrap; }
+        .sync-panel button:disabled { opacity: .5; cursor: not-allowed; }
+        #sync-options { position: relative; }
+        #sync-options summary { list-style: none; }
+        #sync-options summary::-webkit-details-marker { display: none; }
+        #sync-options summary::after { content: ' ▾'; }
+        .sync-options-body { position: absolute; top: 42px; right: 0; z-index: 60; width: min(330px, calc(100vw - 48px)); padding: 14px; border: 1px solid #64748b; border-radius: 10px; background: #1e293b; box-shadow: 0 8px 24px #0004; display: grid; gap: 8px; }
+        body.light-mode .sync-options-body { background: #fff; }
+        .sync-options-body label { font-size: 12px; font-weight: 600; }
+        .sync-device-editor input { width: 100%; min-width: 0; padding: 8px; border: 1px solid #64748b; border-radius: 6px; font-size: 12px; }
+        .sync-device-editor button { white-space: nowrap; }
+        .sync-conflict-actions button:not([hidden]) { margin-top: 10px; }
+        @media (max-width: 640px) {
+            .sync-panel { margin: 12px 12px 0; padding: 12px; }
+            .sync-summary { align-items: flex-start; flex-wrap: wrap; }
+            .sync-actions { margin-left: auto; }
+        }
     </style>
 </head>
 <body class="dark-mode min-h-screen relative overflow-x-hidden">
 
-    <section aria-label="Device and cloud saving" class="corporate-panel p-4 m-3 sm:m-6 rounded-xl" style="border:1px solid #64748b;padding:16px;margin:12px;border-radius:12px">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-            <button id="save-device-btn" type="button" class="px-3 py-2 rounded bg-blue-600 text-white" disabled>Save on this device</button>
-            <button id="sync-now-btn" type="button" class="px-3 py-2 rounded border">Sync now</button>
-            <button id="download-local-btn" type="button" class="px-3 py-2 rounded border">Download device backup</button>
-            <button id="download-history-btn" type="button" class="px-3 py-2 rounded border">Download preserved copies</button>
-            <span id="sync-status" role="status" aria-live="polite">Opening device storage…</span>
+    <section aria-label="Device and cloud saving" class="sync-panel corporate-panel">
+        <div class="sync-summary">
+            <div class="sync-copy">
+                <strong id="sync-status" role="status" aria-live="polite">Opening device storage…</strong>
+                <div id="sync-cloud-time" class="sync-caption">Cloud update: Not available</div>
+            </div>
+            <div class="sync-actions">
+                <button id="sync-now-btn" type="button" class="sync-primary">Sync now</button>
+                <details id="sync-options">
+                    <summary>Options</summary>
+                    <div class="sync-options-body">
+                        <label for="device-name-input">This device</label>
+                        <div class="sync-device-editor">
+                            <input id="device-name-input" type="text" maxlength="40" placeholder="e.g. My Phone" autocomplete="off">
+                            <button id="save-device-name-btn" type="button">Save name</button>
+                        </div>
+                        <span id="device-name-feedback" role="status" class="sync-caption"></span>
+                        <span id="sync-local-time" class="sync-caption">Local edit: Not available</span>
+                        <button id="save-device-btn" type="button" disabled>Save on this device</button>
+                        <button id="download-local-btn" type="button">Download device backup</button>
+                        <button id="download-history-btn" type="button">Download preserved copies</button>
+                        <p class="sync-caption">Records save automatically after you finish the record form. Backups are recovery files.</p>
+                    </div>
+                </details>
+            </div>
         </div>
-        <div style="margin-top:8px;font-size:12px"><span id="sync-local-time">Local edit: Not available</span> · <span id="sync-cloud-time">Cloud saved: Not available</span></div>
-        <p style="font-size:12px;margin-top:6px">Saves committed records. Finish the record form first. Device dates are informational; cloud revisions prevent stale overwrites.</p>
-        <div style="margin-top:8px">
+        <div class="sync-conflict-actions">
             <button id="use-cloud-btn" type="button" hidden>Use cloud version (keep local backup)</button>
             <button id="replace-cloud-btn" type="button" hidden>Replace cloud with this device…</button>
         </div>

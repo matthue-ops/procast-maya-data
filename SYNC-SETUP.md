@@ -1,6 +1,6 @@
 # Device saves and cloud synchronization
 
-The updated app saves committed records to IndexedDB on this device, and synchronizes online through revision-checked Supabase RPCs. The Save on this device button retries local persistence; Sync now retries synchronization. Local edit dates use the device clock, while cloud save dates come from PostgreSQL. Both display the browser's timezone. Dates do not override revision checks.
+The updated app saves committed records to IndexedDB on this device, and synchronizes online through revision-checked Supabase RPCs. Under Options, the Save on this device button retries local persistence; Sync now retries synchronization. Local edit dates use the device clock, while cloud save dates come from PostgreSQL. Both display the browser's timezone. Dates do not override revision checks.
 
 ## Manual deployment
 
@@ -39,3 +39,11 @@ Authentication is unchanged: this app still uses the existing public anon client
 Serve the repository locally with `python3 -m http.server 8000 --bind 127.0.0.1` and run `node tests/sync-browser.cjs` in an environment providing Playwright and `/usr/bin/chromium`. Browser tests intercept all external traffic and use simulated data, never live Supabase.
 
 For SQL tests, use a disposable PostgreSQL database: run `tests/sync-database-bootstrap.sql`, the migration, then `tests/sync-database.sql` with `psql -v ON_ERROR_STOP=1`. Never run the bootstrap or write tests against production. The bootstrap creates the synthetic roles/table expected by the migration.
+
+## Device names and compact controls
+
+Sync now and the save status stay visible. Open Options for manual local saving, backup downloads, and the device name. The name defaults to My Phone or My PC; set it once to a recognizable name such as Field Phone or Office PC. Names are remembered in this browser, so a different browser or site origin must be named separately. Renaming alone does not upload data or advance the revision.
+
+Each new data save includes `_syncSource.deviceName` in the existing JSON payload, atomically with that save. Last cloud update displays the source name beside the database save time; it describes the whole dataset, not individual records. Existing saves without this metadata display Unknown device. Older frontend versions can still sync safely but omit this optional label when they save. Device names are descriptive labels, not proof of identity or authentication. In-flight requests retain the original label when retried, even if this browser is renamed afterward.
+
+No additional SQL or schema migration is needed for this update. The existing revision, receipt, and RPC behavior remains in place. To roll back this interface update, redeploy the previous revision-protected frontend; do not run the emergency SQL rollback merely to remove device labels. The optional metadata can remain in the payload without changing record content or the revision guard. Back up data before deployment as usual.

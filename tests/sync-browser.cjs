@@ -37,15 +37,31 @@ async function status(page,text){await page.waitForFunction(t=>document.getEleme
 async function add(page,name){await page.fill('#new-establishment-name',name);await page.locator('#add-establishment-form button').click();}
 async function waitWrites(n){for(let i=0;i<100&&writes<n;i++)await new Promise(r=>setTimeout(r,50));assert.equal(writes,n);}
 const a=await device();assert.equal(writes,0);
+assert.match(await a.page.locator('#sync-cloud-time').innerText(),/Unknown device/);
 await a.page.click('#tab-aftersales');await a.page.click('#tab-collection');await a.page.click('#theme-toggle-btn');
 await a.page.waitForTimeout(200);assert.equal(writes,0);console.log('PASS startup/navigation/theme never write');
 const b=await device();
+async function nameDevice(page,name){
+ await page.locator('#sync-options summary').click();
+ await page.fill('#device-name-input',name);await page.click('#save-device-name-btn');
+ await page.waitForFunction(()=>document.getElementById('device-name-feedback').textContent.includes('Device name saved'));
+ await page.locator('#sync-options summary').click();
+}
+await nameDevice(a.page,'Field Phone');await nameDevice(b.page,'Office PC');
+assert.equal(writes,0);console.log('PASS device naming does not upload or change revision');
 await add(a.page,'PHONE');await waitWrites(1);await status(a.page,'Saved to cloud');
+assert.equal(cloud.payload._syncSource.deviceName,'Field Phone');
+assert.match(await a.page.locator('#sync-cloud-time').innerText(),/Field Phone/);
+console.log('PASS source device accompanies cloud save');
 await add(b.page,'STALE COMPUTER');await status(b.page,'Newer cloud data');assert.equal(writes,1);assert.equal(cloud.payload.establishments[0].name,'PHONE');console.log('PASS stale device preserves cloud and local conflict');
 await b.page.click('#use-cloud-btn');await status(b.page,'Saved to cloud');assert.equal(writes,1);
+assert.match(await b.page.locator('#sync-cloud-time').innerText(),/Field Phone/);
+assert.equal(await b.page.inputValue('#device-name-input'),'Office PC');
+console.log('PASS cloud source is distinct from this device name');
 offline=true;
 await add(a.page,'OFFLINE FIELD');await status(a.page,'Sync paused');
 await a.page.reload();await a.page.waitForFunction(()=>!document.getElementById('app').inert);await status(a.page,'Sync paused');
+assert.equal(await a.page.inputValue('#device-name-input'),'Field Phone');
 assert.match(await a.page.locator('#establishments-header').innerText(),/2/);console.log('PASS offline committed edits survive reload');
 offline=false;await a.page.click('#sync-now-btn');await waitWrites(2);await status(a.page,'Saved to cloud');assert.equal(cloud.payload.establishments.length,2);
 loseResponse=true;await add(a.page,'LOST RESPONSE');await waitWrites(3);await status(a.page,'Sync paused');
@@ -67,6 +83,18 @@ await a.page.click('#sync-now-btn');await a.page.waitForTimeout(300);await statu
 await b.page.fill('#new-establishment-name','UNSUBMITTED');
 cloud={...cloud,revision:String(Number(cloud.revision)+1),payload:{...cloud.payload,establishments:[]}};
 await b.page.click('#sync-now-btn');await status(b.page,'finish or close your form');assert.equal(await b.page.inputValue('#new-establishment-name'),'UNSUBMITTED');console.log('PASS cloud refresh preserves unsubmitted form');
+// Compact controls work on phone-width screens without horizontal overflow.
+await a.page.setViewportSize({width:375,height:812});
+await a.page.locator('#sync-options').evaluate(e=>e.open=false);
+await a.page.locator('#sync-options summary').click();
+assert.equal(await a.page.locator('#sync-options').evaluate(e=>e.open),true);
+const bounds=await a.page.locator('.sync-options-body').boundingBox();
+assert.ok(bounds.x>=0 && bounds.x+bounds.width<=375,'Options panel must fit the phone viewport');
+await a.page.locator('#sync-options summary').click();
+console.log('PASS compact options fit phone viewport');
+await a.page.screenshot({path:'/tmp/maya-device-phone.png'});
+await a.page.setViewportSize({width:1280,height:800});
+await a.page.screenshot({path:'/tmp/maya-device-desktop.png'});
 assert.deepEqual(errors,[]);console.log('PASS no page errors');
 await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});
