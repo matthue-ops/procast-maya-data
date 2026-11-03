@@ -127,7 +127,22 @@
 </head>
 <body class="dark-mode min-h-screen relative overflow-x-hidden">
 
-    <div id="app" class="relative p-3 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6 z-10">
+    <section aria-label="Device and cloud saving" class="corporate-panel p-4 m-3 sm:m-6 rounded-xl" style="border:1px solid #64748b;padding:16px;margin:12px;border-radius:12px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <button id="save-device-btn" type="button" class="px-3 py-2 rounded bg-blue-600 text-white" disabled>Save on this device</button>
+            <button id="sync-now-btn" type="button" class="px-3 py-2 rounded border">Sync now</button>
+            <button id="download-local-btn" type="button" class="px-3 py-2 rounded border">Download device backup</button>
+            <button id="download-history-btn" type="button" class="px-3 py-2 rounded border">Download preserved copies</button>
+            <span id="sync-status" role="status" aria-live="polite">Opening device storage…</span>
+        </div>
+        <div style="margin-top:8px;font-size:12px"><span id="sync-local-time">Local edit: Not available</span> · <span id="sync-cloud-time">Cloud saved: Not available</span></div>
+        <p style="font-size:12px;margin-top:6px">Saves committed records. Finish the record form first. Device dates are informational; cloud revisions prevent stale overwrites.</p>
+        <div style="margin-top:8px">
+            <button id="use-cloud-btn" type="button" hidden>Use cloud version (keep local backup)</button>
+            <button id="replace-cloud-btn" type="button" hidden>Replace cloud with this device…</button>
+        </div>
+    </section>
+    <div id="app" inert class="relative p-3 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6 z-10">
         
         <!-- Corporate Header -->
         <header class="corporate-panel p-4 sm:p-6 rounded-xl border-l-4 border-l-blue-600 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -139,7 +154,7 @@
                     </h1>
                 </div>
                 <p class="text-[10px] sm:text-xs mt-1 uppercase tracking-wider font-semibold">
-                    Enterprise Data Management Console // Cloud Storage: <span class="text-emerald-500 font-bold">SUPABASE ACTIVE</span>
+                    Enterprise Data Management Console // Cloud Storage: <span class="text-emerald-500 font-bold">REVISION-PROTECTED SYNC</span>
                 </p>
             </div>
             
@@ -480,12 +495,13 @@
 
     </div>
 
+    <script src="./sync.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             // --- SUPABASE CONFIGURATION ---
             const SUPABASE_URL = 'https://jkrnznmzcatlyhvihuua.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imprcm56bm16Y2F0bHlodmlodXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI5NDU0NjgsImV4cCI6MjEwODUyMTQ2OH0.P0cOhQmtjejG5r34ypWuSmkTEJd2z0PPYbpbvJz6hBk';
-            const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            const _supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) || null;
 
             // --- STATE MANAGEMENT ---
             let state = {
@@ -514,33 +530,18 @@
             const APP_STORAGE_KEY = 'enterpriseDataManager';
             const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-            // --- LOAD STATE FROM SUPABASE CLOUD (app_state table) ---
-            async function loadState() {
+            // Local persistence and cloud RPCs are isolated in sync.js.
+            let deviceSync;
+            let applyingCloud = false;
+            function applySavedState(saved) {
+                applyingCloud = true;
                 try {
-                    const { data, error } = await _supabase
-                        .from('app_state')
-                        .select('payload')
-                        .eq('id', 'main_data')
-                        .single();
-
-                    if (data && data.payload) {
-                        state = data.payload;
-                    } else {
-                        const savedState = localStorage.getItem(APP_STORAGE_KEY);
-                        if (savedState) state = JSON.parse(savedState);
-                    }
-                } catch (err) {
-                    console.error('Cloud load failed, using local storage fallback:', err);
-                    const savedState = localStorage.getItem(APP_STORAGE_KEY);
-                    if (savedState) state = JSON.parse(savedState);
-                }
-
+                    state = { ...state, ...saved };
                 if (state.customFields && state.customFields.length > 0 && typeof state.customFields[0] === 'string') {
                     state.customFields = state.customFields.map(fieldKey => ({
                         key: fieldKey,
                         type: 'text'
                     }));
-                    saveState();
                 }
                 
                 if (typeof state.savedFilters === 'undefined') state.savedFilters = [];
@@ -565,24 +566,33 @@
                     });
                 }
                 render();
+                } finally { applyingCloud = false; }
             }
-
-            // --- SAVE STATE TO SUPABASE CLOUD (app_state table) ---
-            async function saveState() {
-                localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state));
-
-                try {
-                    const { error } = await _supabase
-                        .from('app_state')
-                        .upsert({ id: 'main_data', payload: state, updated_at: new Date() });
-
-                    if (error) {
-                        console.error('Error syncing to Supabase:', error);
-                    }
-                } catch (err) {
-                    console.error('Supabase save exception:', err);
-                }
+            function saveState() {
+                if (!applyingCloud) return deviceSync?.save();
             }
+            async function loadState() {
+                deviceSync = await window.createMayaSync({
+                    client: _supabase,
+                    getState: () => state,
+                    applyState: applySavedState,
+                    canRefresh: () => !document.querySelector('.fixed[id$="modal"]:not(.hidden)')
+                        && !document.activeElement?.matches('input, textarea, select')
+                        && ![...document.querySelectorAll('form[data-unsaved-draft="true"]')]
+                            .some(form => form.getClientRects().length)
+                });
+            }
+            // Unsubmitted form values stay on screen until submitted or explicitly cleared.
+            document.addEventListener('input', event => {
+                if (event.target.form) event.target.form.dataset.unsavedDraft = 'true';
+            });
+            document.addEventListener('submit', event => {
+                // Existing handlers validate; defer draft clearing until a successful reset.
+                queueMicrotask(() => {
+                    if ([...event.target.elements].filter(e => e.matches('input[type="text"], textarea'))
+                        .every(e => !e.value)) delete event.target.dataset.unsavedDraft;
+                });
+            });
 
             // --- VIEW TAB SWITCHER ---
             const tabCollection = document.getElementById('tab-collection');
@@ -2380,7 +2390,7 @@
                 
                 state.editingEstablishmentId = null;
                 editModal.classList.add('hidden');
-                showToast("RECORD SAVED");
+                showToast("RECORD UPDATED — CHECK SYNC STATUS");
             });
 
             editModal.addEventListener('click', (e) => {
@@ -2768,7 +2778,7 @@
                 const aftersalesCount = mergeAftersalesBackup(payload);
                 saveState();
                 render();
-                showToast(`SUCCESS: ${importedEstCount} RECORDS & ${aftersalesCount} AFTERSALES RECORDS IMPORTED & SYNCED`);
+                showToast(`SUCCESS: ${importedEstCount} RECORDS & ${aftersalesCount} AFTERSALES RECORDS IMPORTED — CHECK SYNC STATUS`);
             }
 
             function performImportReplace(payload) {
@@ -2810,7 +2820,7 @@
                 }
                 saveState();
                 render();
-                showToast(`DATABASE REPLACED: ${importedEstCount} RECORDS & ${state.aftersalesRecords.length} AFTERSALES RECORDS SYNCED`);
+                showToast(`DATABASE REPLACED: ${importedEstCount} RECORDS & ${state.aftersalesRecords.length} AFTERSALES RECORDS — CHECK SYNC STATUS`);
             }
 
             const importBtn = document.getElementById('import-btn');
