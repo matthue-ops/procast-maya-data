@@ -1,6 +1,8 @@
 # Cloudflare Pages migration
 
-Status: build and local Pages runtime prepared; remote account deployment and live checks still required. Vercel remains unchanged. No database changes are required or authorized by this migration.
+Status: deployed to https://procast-maya-data.pages.dev/ from `deploy/cloudflare-pages` (initial deployment commit `bd6443c`). On November 4, 2026 (Asia/Manila), the owner confirmed the live app works and provided a screenshot showing records loaded and “All changes saved to cloud.” This is owner-verified live validation; the agent's direct HTTP checks remain blocked by the execution environment's network policy. Local automated build/routing/browser checks passed. Vercel remains unchanged. No database changes were executed for this migration.
+
+Remaining operational checks: repair/verify the GitHub connection warning shown in Cloudflare so future pushes deploy reliably; finish moving each device only after its Vercel-origin pending work has synced or been preserved. No Vercel retirement, DNS change, redirect, or PR merge has been performed.
 
 ## What was checked
 
