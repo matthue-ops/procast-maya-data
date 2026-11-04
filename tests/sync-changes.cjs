@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict');
+const {changesBetween}=require('../sync-changes.js');
+const fixture=require('./merge-fixture.cjs');
+const clone=value=>structuredClone(value);
+let a=clone(fixture),b=clone(a);b.isDarkMode=false;b.activeTab='aftersales';b.establishments.reverse();b.establishments[0].collapsed=['ADDRESS'];assert.deepEqual(changesBetween(a,b),[]);
+b=clone(a);b.establishments[0].details.PHONE='Edited';let changes=changesBetween(a,b);assert.equal(changes.length,1);assert.deepEqual(changes[0].details_set,{PHONE:'Edited'});assert.deepEqual(changes[0].set,{});
+b=clone(a);b.establishments.splice(1,1);assert.deepEqual(changesBetween(a,b),[{kind:'delete',collection:'establishments',id:'r2'}]);
+b=clone(a);b.customFields[0].key='LOCATION';for(const r of b.establishments){r.details.LOCATION=r.details.ADDRESS;delete r.details.ADDRESS;}assert.deepEqual(changesBetween(a,b,{kind:'rename_field',key:'ADDRESS',new_key:'LOCATION'}),[{kind:'rename_field',key:'ADDRESS',new_key:'LOCATION'}]);
+changes=changesBetween(a,b,{kind:'replace_all'});assert.equal(changes.length,1);assert.equal(changes[0].kind,'replace_all');assert.deepEqual(changes[0].expected.customFields,a.customFields);
+b=clone(a);b.aftersalesRecords=[];assert.equal(changesBetween(a,b,{kind:'replace_aftersales'})[0].kind,'replace_aftersales');
+b=clone(a);delete b.establishments[0].details.ADDRESS;assert.deepEqual(changesBetween(a,b)[0].details_unset,['ADDRESS']);
+b=clone(a);b.customFields.push({key:'NEW',type:'text'});changes=changesBetween(a,b);assert.equal(changes[0].kind,'add_field');assert.equal(changes[1].kind,'order_fields');
+console.log('PASS pure change capture: preferences/order, field patches, deletes, semantic rename and explicit replacement');

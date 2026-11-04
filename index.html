@@ -123,14 +123,110 @@
         .card-none {
             border-color: #64748b !important;
         }
+
+        /* Compact sync controls; independent of CDN styles. */
+        .sync-panel, .sync-panel * { box-sizing: border-box; }
+        .sync-panel { max-width: 1216px; margin: 12px auto 0; padding: 12px 16px; border-radius: 12px; }
+        .sync-summary, .sync-actions, .sync-device-editor { display: flex; align-items: center; gap: 10px; }
+        .sync-summary { justify-content: space-between; }
+        .sync-copy { min-width: 0; overflow-wrap: anywhere; }
+        #sync-status { font-size: 13px; }
+        .sync-caption { display: block; font-size: 12px; opacity: .8; margin-top: 4px; }
+        .sync-panel button, #sync-options summary { font: inherit; font-size: 12px; padding: 8px 12px; border: 1px solid #64748b; border-radius: 7px; cursor: pointer; }
+        .sync-panel button { background: transparent; color: inherit; }
+        .sync-panel .sync-primary { background: #2563eb; color: #fff; border-color: #2563eb; white-space: nowrap; }
+        .sync-panel button:disabled { opacity: .5; cursor: not-allowed; }
+        #sync-options { position: relative; }
+        #sync-options summary { list-style: none; }
+        #sync-options summary::-webkit-details-marker { display: none; }
+        #sync-options summary::after { content: ' ▾'; }
+        .sync-options-body { position: absolute; top: 42px; right: 0; z-index: 60; width: min(330px, calc(100vw - 48px)); padding: 14px; border: 1px solid #64748b; border-radius: 10px; background: #1e293b; box-shadow: 0 8px 24px #0004; display: grid; gap: 8px; }
+        body.light-mode .sync-options-body { background: #fff; }
+        .sync-options-body label { font-size: 12px; font-weight: 600; }
+        .sync-device-editor input { width: 100%; min-width: 0; padding: 8px; border: 1px solid #64748b; border-radius: 6px; font-size: 12px; }
+        .sync-device-editor button { white-space: nowrap; }
+        .sync-conflict-actions button:not([hidden]) { margin-top: 10px; }
+        @media (max-width: 640px) {
+            .sync-panel { margin: 12px 12px 0; padding: 12px; }
+            .sync-summary { align-items: flex-start; flex-wrap: wrap; }
+            .sync-actions { margin-left: auto; }
+        }
+
+        .records-new-btn, .records-more-btn { min-height: 44px; padding: 10px 16px; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .records-new-btn { background: #2563eb; color: #fff; margin-bottom: 12px; }
+        .records-more-btn { display: block; width: 100%; border: 1px solid #64748b; margin-top: 16px; background: transparent; color: inherit; }
+        .record-tools { margin-top: 18px; }
+        .record-tools > summary { padding: 14px; border: 1px solid #64748b; border-radius: 10px; cursor: pointer; font-size: 13px; }
+        .record-tools[open] > summary { margin-bottom: 12px; }
+        #create-record-dialog { padding: 0; border: 0; border-radius: 16px; width: min(480px, calc(100vw - 24px)); color: inherit; background: transparent; }
+        #create-record-dialog::backdrop { background: #020617b3; }
+        #create-record-dialog section { margin: 0; }
+        #close-create-record-btn { min-width: 44px; min-height: 44px; }
+        #sync-status[data-state="offline"] { color: #f59e0b; }
+        #sync-status[data-state="error"] { color: #ef4444; }
+        @media (max-width: 640px) {
+            .app-header { position: relative; padding: 10px 12px !important; gap: 8px !important; }
+            .app-header h1 { font-size: 14px !important; padding-right: 40px; }
+            .app-header > div:first-child { min-height: 44px; display: flex; align-items: center; }
+            .header-description { display: none; }
+            .app-header #theme-toggle-btn { position: absolute; top: 8px; right: 8px; width: 44px; min-height: 44px; padding: 0; justify-content: center; }
+            .app-header #theme-text { display: none; }
+            #view-details-modal button, #details-modal button, #aftersales-details-modal button, #aftersales-cards-container button { min-height: 44px; }
+            .records-panel { padding: 12px !important; }
+            .records-toolbar { position: sticky; top: 0; z-index: 20; padding: 8px 0; background: #1e293b; }
+            body.light-mode .records-toolbar { background: #fff; }
+            #search-input, #aftersales-search-input, #create-record-dialog input { font-size: 16px !important; min-height: 46px; }
+            #toggle-list-btn { display: none; }
+            .records-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 10px; }
+            .records-grid [data-action="view-details"] { min-height: 76px; padding: 14px; }
+            .records-grid h4 { font-size: 13px; white-space: normal; overflow-wrap: anywhere; }
+            #details-modal > div, #view-details-modal > div, #aftersales-details-modal > div { width: 100%; max-height: 92dvh; padding: 16px; }
+            #details-modal input, #details-modal textarea, #details-modal select { font-size: 16px; min-height: 44px; }
+            #create-record-dialog { margin: auto 12px 12px; max-height: 85dvh; }
+            .sync-panel { margin-top: 8px; padding: 8px 12px; }
+            .sync-summary { gap: 6px; }
+            .sync-panel button, #sync-options summary { min-height: 44px; }
+        }
     </style>
 </head>
 <body class="dark-mode min-h-screen relative overflow-x-hidden">
 
-    <div id="app" class="relative p-3 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6 z-10">
+    <section aria-label="Device and cloud saving" class="sync-panel corporate-panel">
+        <div class="sync-summary">
+            <div class="sync-copy">
+                <strong id="sync-status" role="status" aria-live="polite">Opening device storage…</strong>
+                <div id="sync-cloud-time" class="sync-caption">Cloud update: Not available</div>
+            </div>
+            <div class="sync-actions">
+                <button id="sync-now-btn" type="button" class="sync-primary">Sync now</button>
+                <details id="sync-options">
+                    <summary>Options</summary>
+                    <div class="sync-options-body">
+                        <label for="device-name-input">This device</label>
+                        <div class="sync-device-editor">
+                            <input id="device-name-input" type="text" maxlength="40" placeholder="e.g. My Phone" autocomplete="off">
+                            <button id="save-device-name-btn" type="button">Save name</button>
+                        </div>
+                        <span id="device-name-feedback" role="status" class="sync-caption"></span>
+                        <span id="sync-local-time" class="sync-caption">Local edit: Not available</span>
+                        <button id="save-device-btn" type="button" disabled>Save on this device</button>
+                        <button id="download-local-btn" type="button">Download device backup</button>
+                        <button id="download-history-btn" type="button">Download preserved copies</button>
+                        <p class="sync-caption">Records save automatically after you finish the record form. Backups are recovery files.</p>
+                    </div>
+                </details>
+            </div>
+        </div>
+        <p id="sync-notice" class="sync-caption" role="status" hidden></p>
+        <div class="sync-conflict-actions">
+            <button id="use-cloud-btn" type="button" hidden>Load cloud copy (preserve pending backup)</button>
+            <button id="replace-cloud-btn" type="button" hidden>Review full replacement…</button>
+        </div>
+    </section>
+    <div id="app" inert class="relative p-3 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6 z-10">
         
         <!-- Corporate Header -->
-        <header class="corporate-panel p-4 sm:p-6 rounded-xl border-l-4 border-l-blue-600 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <header class="app-header corporate-panel p-4 sm:p-6 rounded-xl border-l-4 border-l-blue-600 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
                 <div class="flex items-center gap-2.5 sm:gap-3">
                     <span class="inline-block w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-blue-600"></span>
@@ -138,8 +234,8 @@
                         Project Maya - Procast
                     </h1>
                 </div>
-                <p class="text-[10px] sm:text-xs mt-1 uppercase tracking-wider font-semibold">
-                    Enterprise Data Management Console // Cloud Storage: <span class="text-emerald-500 font-bold">SUPABASE ACTIVE</span>
+                <p class="header-description text-[10px] sm:text-xs mt-1 uppercase tracking-wider font-semibold">
+                    Enterprise Data Management Console // Cloud Storage: <span class="text-emerald-500 font-bold">AUTOMATIC SYNC</span>
                 </p>
             </div>
             
@@ -148,7 +244,7 @@
                 <!-- View Switcher Tabs -->
                 <div class="grid grid-cols-2 bg-slate-900/50 p-1 rounded-lg border border-slate-700 w-full sm:w-80">
                     <button id="tab-collection" class="px-3 py-2 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider transition bg-blue-600 text-white text-center">
-                        Data Collection
+                        Saved Records
                     </button>
                     <button id="tab-aftersales" class="px-3 py-2 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider transition text-slate-400 hover:text-white text-center">
                         Aftersales Rechecking
@@ -169,20 +265,20 @@
         <!-- ================= VIEW 1: DATA COLLECTION MODULE ================= -->
         <div id="view-collection-container" class="space-y-4 sm:space-y-6">
             <!-- STEP 1: SAVED ESTABLISHMENTS PANEL -->
-            <section class="corporate-panel p-4 sm:p-6 rounded-xl transition-all duration-300">
+            <section id="saved-records-panel" class="records-panel corporate-panel p-4 sm:p-6 rounded-xl transition-all duration-300">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 border-b pb-3 sm:pb-4 gap-3">
                     <div class="flex items-center gap-2.5 sm:gap-3">
                         <div class="p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-600">
                             <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                         </div>
                         <h2 id="establishments-header" class="text-sm sm:text-base font-bold tracking-wide uppercase">
-                            1. Saved Records (0)
+                            Saved Records (0)
                         </h2>
                     </div>
                 </div>
                 
                 <!-- Search & Toggle Bar -->
-                <div class="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-6">
+                <div class="records-toolbar flex flex-col sm:flex-row gap-3 mb-4 sm:mb-6">
                     <div class="relative flex-grow">
                         <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -202,54 +298,20 @@
                         <span id="toggle-list-text">Show All</span>
                     </button>
                 </div>
-
+                <button id="new-record-btn" type="button" class="records-new-btn">＋ New record</button>
                 <!-- Establishments list container -->
                 <div id="establishments-container">
                      <!-- Establishments list gets rendered here by JavaScript -->
                 </div>
             </section>
 
-            <!-- Two-column or stacked layout for Add and Structure tools -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <details id="record-tools" class="record-tools">
+                <summary>Fields, import &amp; backups</summary>
+            <!-- Schema tools -->
+            <div class="grid grid-cols-1 gap-4 sm:gap-6">
                 
-                <!-- STEP 2: ADD NEW ESTABLISHMENT -->
-                <section class="corporate-panel p-4 sm:p-6 rounded-xl h-fit lg:col-span-1">
-                    <div class="flex items-center justify-between mb-3 sm:mb-4 border-b pb-3 cursor-pointer select-none" data-action="toggle-section" data-target="create-record-body">
-                        <div class="flex items-center gap-2.5 sm:gap-3">
-                            <div class="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-600">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            </div>
-                            <h2 class="text-xs sm:text-sm font-bold tracking-wide uppercase">
-                                2. Create Record
-                            </h2>
-                        </div>
-                        <svg id="create-record-icon" class="w-4 h-4 transform transition-transform duration-200 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </div>
-                    
-                    <div id="create-record-body" class="space-y-4">
-                        <form id="add-establishment-form" class="flex flex-col space-y-3 sm:space-y-4">
-                            <div>
-                                <label for="new-establishment-name" class="block text-[11px] font-bold tracking-wider uppercase mb-1">Record Identifier</label>
-                                <input
-                                    id="new-establishment-name"
-                                    type="text"
-                                    placeholder="e.g. CLIENT ABC"
-                                    required
-                                    class="w-full p-2.5 sm:p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-xs uppercase font-bold"
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-all duration-150 text-xs uppercase tracking-wider"
-                            >
-                                Save Record
-                            </button>
-                        </form>
-                    </div>
-                </section>
-
                 <!-- STEP 3: DEFINE DATA STRUCTURE -->
-                <section class="corporate-panel p-4 sm:p-6 rounded-xl h-fit lg:col-span-2">
+                <section class="corporate-panel p-4 sm:p-6 rounded-xl h-fit">
                     <div class="flex items-center justify-between mb-3 sm:mb-4 border-b pb-3 cursor-pointer select-none" data-action="toggle-section" data-target="schema-body">
                         <div class="flex items-center gap-2.5 sm:gap-3">
                             <div class="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-600">
@@ -318,6 +380,7 @@
                     </button>
                 </div>
             </section>
+            </details>
         </div>
 
         <!-- ================= VIEW 2: AFTERSALES RECHECKING MODULE ================= -->
@@ -388,6 +451,45 @@
                 </div>
             </section>
         </div>
+
+        <dialog id="create-record-dialog" aria-label="Create record">
+                <!-- STEP 2: ADD NEW ESTABLISHMENT -->
+                <section class="corporate-panel p-4 sm:p-6 rounded-xl h-fit">
+                    <div class="flex items-center justify-between mb-3 sm:mb-4 border-b pb-3">
+                        <div class="flex items-center gap-2.5 sm:gap-3">
+                            <div class="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-600">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <h2 class="text-xs sm:text-sm font-bold tracking-wide uppercase">
+                                New record
+                            </h2>
+                        </div>
+                        <button id="close-create-record-btn" type="button" aria-label="Close new record">✕</button>
+                    </div>
+
+                    <div id="create-record-body" class="space-y-4">
+                        <form id="add-establishment-form" class="flex flex-col space-y-3 sm:space-y-4">
+                            <div>
+                                <label for="new-establishment-name" class="block text-[11px] font-bold tracking-wider uppercase mb-1">Record Identifier</label>
+                                <input
+                                    id="new-establishment-name"
+                                    type="text"
+                                    placeholder="e.g. CLIENT ABC"
+                                    required
+                                    class="w-full p-2.5 sm:p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-xs uppercase font-bold"
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-all duration-150 text-xs uppercase tracking-wider"
+                            >
+                                Save Record
+                            </button>
+                        </form>
+                    </div>
+                </section>
+
+        </dialog>
 
         <!-- Toast Notifications -->
         <div id="copy-toast" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 corporate-panel border border-blue-500 p-3.5 sm:p-4 rounded-xl shadow-2xl transition-all duration-300 z-50 opacity-0 pointer-events-none flex items-center gap-3">
@@ -480,12 +582,14 @@
 
     </div>
 
+    <script src="./sync-changes.js"></script>
+    <script src="./sync.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             // --- SUPABASE CONFIGURATION ---
             const SUPABASE_URL = 'https://jkrnznmzcatlyhvihuua.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imprcm56bm16Y2F0bHlodmlodXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI5NDU0NjgsImV4cCI6MjEwODUyMTQ2OH0.P0cOhQmtjejG5r34ypWuSmkTEJd2z0PPYbpbvJz6hBk';
-            const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            const _supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) || null;
 
             // --- STATE MANAGEMENT ---
             let state = {
@@ -514,33 +618,20 @@
             const APP_STORAGE_KEY = 'enterpriseDataManager';
             const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-            // --- LOAD STATE FROM SUPABASE CLOUD (app_state table) ---
-            async function loadState() {
+            // Local persistence and cloud RPCs are isolated in sync.js.
+            let deviceSync;
+            let applyingCloud = false;
+            let firstRestore = true;
+            function applySavedState(saved) {
+                applyingCloud = true;
                 try {
-                    const { data, error } = await _supabase
-                        .from('app_state')
-                        .select('payload')
-                        .eq('id', 'main_data')
-                        .single();
-
-                    if (data && data.payload) {
-                        state = data.payload;
-                    } else {
-                        const savedState = localStorage.getItem(APP_STORAGE_KEY);
-                        if (savedState) state = JSON.parse(savedState);
-                    }
-                } catch (err) {
-                    console.error('Cloud load failed, using local storage fallback:', err);
-                    const savedState = localStorage.getItem(APP_STORAGE_KEY);
-                    if (savedState) state = JSON.parse(savedState);
-                }
-
+                    state = { ...state, ...saved };
+                    if (firstRestore) { state.activeTab = 'collection'; state.isListExpanded = true; state.searchTerm = ''; firstRestore = false; }
                 if (state.customFields && state.customFields.length > 0 && typeof state.customFields[0] === 'string') {
                     state.customFields = state.customFields.map(fieldKey => ({
                         key: fieldKey,
                         type: 'text'
                     }));
-                    saveState();
                 }
                 
                 if (typeof state.savedFilters === 'undefined') state.savedFilters = [];
@@ -565,24 +656,36 @@
                     });
                 }
                 render();
+                } finally { applyingCloud = false; }
             }
-
-            // --- SAVE STATE TO SUPABASE CLOUD (app_state table) ---
-            async function saveState() {
-                localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state));
-
-                try {
-                    const { error } = await _supabase
-                        .from('app_state')
-                        .upsert({ id: 'main_data', payload: state, updated_at: new Date() });
-
-                    if (error) {
-                        console.error('Error syncing to Supabase:', error);
-                    }
-                } catch (err) {
-                    console.error('Supabase save exception:', err);
-                }
+            function saveState(intent) {
+                if (!applyingCloud) return deviceSync?.save(intent);
             }
+            async function loadState() {
+                deviceSync = await window.createMayaSync({
+                    client: _supabase,
+                    getState: () => state,
+                    applyState: applySavedState,
+                    canRefresh: () => !document.querySelector('.fixed[id$="modal"]:not(.hidden)')
+                        && !document.querySelector('dialog[open]')
+                        && !document.activeElement?.matches('input:not(#search-input):not(#aftersales-search-input), textarea, select')
+                        && ![...document.querySelectorAll('form[data-unsaved-draft="true"]')]
+                            .some(form => form.getClientRects().length),
+                    hasDraft: () => [...document.querySelectorAll('form[data-unsaved-draft="true"]')]
+                        .some(form => form.getClientRects().length && [...form.elements].some(e => e.matches('input, textarea, select') && e.value))
+                });
+            }
+            // Unsubmitted form values stay on screen until submitted or explicitly cleared.
+            document.addEventListener('input', event => {
+                if (event.target.form) event.target.form.dataset.unsavedDraft = 'true';
+            });
+            document.addEventListener('submit', event => {
+                // Existing handlers validate; defer draft clearing until a successful reset.
+                queueMicrotask(() => {
+                    if ([...event.target.elements].filter(e => e.matches('input[type="text"], textarea'))
+                        .every(e => !e.value)) delete event.target.dataset.unsavedDraft;
+                });
+            });
 
             // --- VIEW TAB SWITCHER ---
             const tabCollection = document.getElementById('tab-collection');
@@ -943,9 +1046,10 @@
                 return html;
             }
 
+            let recordDisplayLimit = 30;
             function renderEstablishments() {
                 const lowerCaseSearchTerm = state.searchTerm.toLowerCase().trim();
-                let filteredList = state.establishments;
+                let filteredList = [...state.establishments];
 
                 if (lowerCaseSearchTerm) {
                     filteredList = state.establishments.filter(e =>
@@ -958,7 +1062,7 @@
 
                 filteredList.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
                 
-                establishmentsHeader.textContent = `1. Saved Records (${state.establishments.length})`;
+                establishmentsHeader.textContent = `Saved Records (${state.establishments.length})`;
 
                 if (lowerCaseSearchTerm) {
                     toggleListBtn.disabled = true;
@@ -1013,8 +1117,8 @@
                 }
 
                 establishmentsContainer.innerHTML = `
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 animate-fade-in">
-                        ${filteredList.map(est => {
+                    <div class="records-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 animate-fade-in">
+                        ${filteredList.slice(0, recordDisplayLimit).map(est => {
                             const totalDetails = state.customFields.filter(f => !f.key.includes(':') || state.customFields.find(p => p.key === f.key.substring(0, f.key.lastIndexOf(':')))).length;
                             const filledDetails = Object.values(est.details || {}).filter(val => {
                                 const field = state.customFields.find(f => f.key === Object.keys(est.details).find(k => est.details[k] === val));
@@ -1043,6 +1147,7 @@
                             `;
                         }).join('')}
                     </div>
+                    ${filteredList.length > recordDisplayLimit ? `<button type="button" data-action="show-more-records" class="records-more-btn">Show more (${Math.min(recordDisplayLimit, filteredList.length)} of ${filteredList.length})</button>` : ''}
                 `;
             }
 
@@ -1070,7 +1175,7 @@
                         state.aftersalesRecords = [];
                         state.aftersalesSearchTerm = '';
                         state.aftersalesActiveFilterId = null;
-                        saveState();
+                        saveState({ kind: 'replace_aftersales' });
                         renderAftersalesCards();
                         showToast("ALL AFTERSALES DATA ERASED");
                     }
@@ -1132,7 +1237,7 @@
                             };
                         });
 
-                        saveState();
+                        saveState({ kind: 'replace_aftersales' });
                         renderAftersalesCards();
                         showToast(`SUCCESS: ${state.aftersalesRecords.length} AFTERSALES RECORDS LOADED`);
                     } catch (err) {
@@ -2127,6 +2232,11 @@
                 }
             });
 
+            document.getElementById('new-record-btn').addEventListener('click', () => {
+                document.getElementById('create-record-dialog').showModal();
+                document.getElementById('new-establishment-name').focus();
+            });
+            document.getElementById('close-create-record-btn').addEventListener('click', () => document.getElementById('create-record-dialog').close());
             document.getElementById('add-establishment-form').addEventListener('submit', (e) => {
                 e.preventDefault();
                 const input = document.getElementById('new-establishment-name');
@@ -2146,12 +2256,14 @@
                     saveState();
                     render();
                     input.value = '';
+                    document.getElementById('create-record-dialog').close();
                     showToast("RECORD CREATED");
                 }
             });
             
             searchInput.addEventListener('input', (e) => {
                 state.searchTerm = e.target.value;
+                recordDisplayLimit = 30;
                 renderEstablishments();
             });
 
@@ -2196,7 +2308,7 @@
                             });
 
                             state.customFields = state.customFields.filter(f => f.key !== field && !f.key.startsWith(field + ':'));
-                            saveState();
+                            saveState({ kind: 'delete_field', key: field });
                             render();
                             showToast(`FIELD DELETED`);
                         }
@@ -2312,7 +2424,7 @@
                             est.details = newDetails;
                         });
 
-                        saveState();
+                        saveState({ kind: 'rename_field', key: oldFieldKey, new_key: newFieldKey });
                         showToast(`FIELD UPDATED`);
                     }
                     render();
@@ -2329,6 +2441,7 @@
             });
 
             establishmentsContainer.addEventListener('click', (e) => {
+                if (e.target.closest('[data-action="show-more-records"]')) { recordDisplayLimit += 30; renderEstablishments(); return; }
                 const target = e.target.closest('[data-action="view-details"]');
                 const expandAction = e.target.closest('[data-action="expand-list"]');
                 
@@ -2380,7 +2493,7 @@
                 
                 state.editingEstablishmentId = null;
                 editModal.classList.add('hidden');
-                showToast("RECORD SAVED");
+                showToast("RECORD UPDATED — CHECK SYNC STATUS");
             });
 
             editModal.addEventListener('click', (e) => {
@@ -2768,7 +2881,7 @@
                 const aftersalesCount = mergeAftersalesBackup(payload);
                 saveState();
                 render();
-                showToast(`SUCCESS: ${importedEstCount} RECORDS & ${aftersalesCount} AFTERSALES RECORDS IMPORTED & SYNCED`);
+                showToast(`SUCCESS: ${importedEstCount} RECORDS & ${aftersalesCount} AFTERSALES RECORDS IMPORTED — CHECK SYNC STATUS`);
             }
 
             function performImportReplace(payload) {
@@ -2808,9 +2921,9 @@
                     state.aftersalesHeaders = [...(payload.aftersalesHeaders || [])];
                     state.aftersalesRecords = (payload.aftersalesRecords || []).map(r => ({ ...r, id: r.id != null ? r.id : generateId() }));
                 }
-                saveState();
+                saveState({ kind: 'replace_all' });
                 render();
-                showToast(`DATABASE REPLACED: ${importedEstCount} RECORDS & ${state.aftersalesRecords.length} AFTERSALES RECORDS SYNCED`);
+                showToast(`DATABASE REPLACED: ${importedEstCount} RECORDS & ${state.aftersalesRecords.length} AFTERSALES RECORDS — CHECK SYNC STATUS`);
             }
 
             const importBtn = document.getElementById('import-btn');
