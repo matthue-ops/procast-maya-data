@@ -8,7 +8,7 @@ Remaining operational checks: repair/verify the GitHub connection warning shown 
 
 | Area | Finding |
 | --- | --- |
-| Build | Static `index.html`, `sync.js`, and `sync-changes.js`; no framework, package manifest, bundler, SSR, or Vercel Functions. A dependency-free Node build now copies only public assets into `dist`. |
+| Build | Static `index.html`, `sync.js`, `sync-changes.js`, and `aftersales-workbook.js`; no framework, package manifest, bundler, SSR, or Vercel Functions. A dependency-free Node build now copies only public assets into `dist`. |
 | Routing | One app at `/`. Local script paths stay relative. No client-side history router or deep-link routes were found. A top-level `404.html` prevents Pages' default SPA fallback from returning the app for missing scripts or private repo paths. |
 | Environment | The browser currently uses an embedded public Supabase URL/anon key. There are no application `process.env`/`import.meta.env` bindings or Vercel-only runtime variables to transfer. Do not add a service-role secret to this static site. |
 | Authentication | No implemented sign-in/sign-out, OAuth redirectTo, callback route, auth middleware, or passkey enrollment. The device-access design in `docs/proposals` remains a proposal. There is no current callback to migrate. Supabase dashboard auth settings were not accessed or changed. |

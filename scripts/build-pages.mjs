@@ -8,6 +8,7 @@ const files = new Map([
     ['index.html', 'index.html'],
     ['sync.js', 'sync.js'],
     ['sync-changes.js', 'sync-changes.js'],
+    ['aftersales-workbook.js', 'aftersales-workbook.js'],
     ['404.html', 'cloudflare/404.html'],
     ['_headers', 'cloudflare/_headers']
 ]);
@@ -20,7 +21,7 @@ async function regularFile(file) {
 // Validate all inputs before changing any output. Never recursively publish the repo.
 for (const source of files.values()) await regularFile(path.join(root, source));
 const html = await readFile(path.join(root, 'index.html'), 'utf8');
-for (const script of ['sync.js', 'sync-changes.js']) {
+for (const script of ['sync.js', 'sync-changes.js', 'aftersales-workbook.js']) {
     if (!html.includes(`src="./${script}"`)) throw new Error(`Missing app script reference: ${script}`);
 }
 

@@ -187,6 +187,17 @@
             .sync-summary { gap: 6px; }
             .sync-panel button, #sync-options summary { min-height: 44px; }
         }
+
+        .aftersales-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+        .aftersales-actions button { min-height: 44px; min-width: 44px; }
+        .aftersales-status-filter { border: 1px solid #64748b; border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 600; background: transparent; color: inherit; }
+        .aftersales-export-control { position: relative; }
+        .aftersales-export-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; width: 190px; display: grid; padding: 6px; border: 1px solid #64748b; border-radius: 10px; background: #1e293b; box-shadow: 0 8px 24px #0004; }
+        .aftersales-export-menu[hidden] { display: none; }
+        .aftersales-export-menu button { padding: 10px; text-align: left; font-size: 12px; border-radius: 6px; color: inherit; }
+        .aftersales-export-menu button:disabled { opacity: .45; cursor: not-allowed; }
+        .aftersales-export-menu button:hover:not(:disabled), .aftersales-export-menu button:focus-visible { background: #64748b33; }
+        body.light-mode .aftersales-export-menu { background: #fff; }
     </style>
 </head>
 <body class="dark-mode min-h-screen relative overflow-x-hidden">
@@ -398,7 +409,8 @@
                     </div>
                     
                     <!-- Upload, export, and delete as icon-only logo buttons with tooltips -->
-                    <div class="flex items-center gap-2">
+                    <div class="aftersales-actions flex items-center gap-2">
+                        <button id="aftersales-status-filter" type="button" class="aftersales-status-filter" title="Showing unmarked records. Click to show resolved records.">Default</button>
                         <input type="file" id="aftersales-file-input" accept=".xlsx, .xls" class="hidden" />
                         <button
                             id="upload-aftersales-btn"
@@ -407,13 +419,19 @@
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                         </button>
+                        <div class="aftersales-export-control">
                         <button
                             id="export-aftersales-excel-btn"
                             class="p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm transition duration-150 flex items-center justify-center"
-                            title="Export Aftersales to Excel"
+                            title="Export Aftersales to Excel" aria-label="Export aftersales" aria-expanded="false" aria-controls="aftersales-export-menu"
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                         </button>
+                            <div id="aftersales-export-menu" class="aftersales-export-menu" hidden>
+                                <button type="button" data-aftersales-export="all">Export all</button>
+                                <button type="button" data-aftersales-export="view">Export current view</button>
+                            </div>
+                        </div>
                         <button
                             id="clear-aftersales-btn"
                             class="p-2.5 border border-red-500 text-red-600 hover:bg-red-500/10 rounded-lg shadow-sm transition duration-150 flex items-center justify-center"
@@ -582,6 +600,7 @@
 
     </div>
 
+    <script src="./aftersales-workbook.js"></script>
     <script src="./sync-changes.js"></script>
     <script src="./sync.js"></script>
     <script>
@@ -1159,6 +1178,25 @@
             const aftersalesSearchInput = document.getElementById('aftersales-search-input');
             const aftersalesCardsContainer = document.getElementById('aftersales-cards-container');
             const aftersalesStats = document.getElementById('aftersales-stats');
+            const aftersalesStatusFilter = document.getElementById('aftersales-status-filter');
+            const aftersalesExportMenu = document.getElementById('aftersales-export-menu');
+            let aftersalesStatusMode = 'None'; // View-only; never part of cloud state.
+            function currentAftersalesView() {
+                return MayaAftersales.filtered(state.aftersalesRecords, state.aftersalesSearchTerm, aftersalesStatusMode);
+            }
+            function closeAftersalesExport() {
+                aftersalesExportMenu.hidden = true;
+                exportAftersalesExcelBtn.setAttribute('aria-expanded', 'false');
+            }
+            aftersalesStatusFilter.addEventListener('click', () => {
+                const modes = ['None', 'Resolved', 'Unresolved'];
+                aftersalesStatusMode = modes[(modes.indexOf(aftersalesStatusMode) + 1) % modes.length];
+                renderAftersalesCards();
+            });
+            document.addEventListener('pointerdown', event => {
+                if (!event.target.closest('.aftersales-export-control')) closeAftersalesExport();
+            });
+            document.addEventListener('keydown', event => { if (event.key === 'Escape') closeAftersalesExport(); });
 
             uploadAftersalesBtn.addEventListener('click', () => { aftersalesFileInput.click(); });
 
@@ -1205,41 +1243,29 @@
                 reader.onload = (event) => {
                     try {
                         const data = new Uint8Array(event.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const firstSheetName = workbook.SheetNames[0];
-                        const worksheet = workbook.Sheets[firstSheetName];
-                        
-                        const rawJson = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                        if (!rawJson || rawJson.length === 0) {
-                            showToast("EXCEL FILE IS EMPTY");
-                            return;
-                        }
-
-                        const headers = rawJson[0].map(h => String(h || '').trim()).filter(h => h.length > 0);
-                        const dataRows = rawJson.slice(1);
-
-                        state.aftersalesHeaders = headers;
-                        state.aftersalesRecords = dataRows.map((row, index) => {
-                            const detailsObj = {};
-                            headers.forEach((h, colIdx) => {
-                                detailsObj[h] = row[colIdx] !== undefined && row[colIdx] !== null ? String(row[colIdx]) : '—';
-                            });
-
-                            const merchantName = getFieldByMatchingKeys(detailsObj, ['Merchant Name', 'MERCHANT NAME', 'Merchant', 'CLIENT', 'Client', headers[0]]);
-                            const dbaName = getFieldByMatchingKeys(detailsObj, ['DBA Name', 'DBA NAME', 'DBA', 'Trading Name', 'Business Name']);
-
-                            return {
-                                id: `aftersales_${index}_${Date.now()}`,
-                                merchantName: merchantName,
-                                dbaName: dbaName,
-                                details: detailsObj,
-                                status: 'None'
-                            };
-                        });
-
-                        saveState({ kind: 'replace_aftersales' });
-                        renderAftersalesCards();
-                        showToast(`SUCCESS: ${state.aftersalesRecords.length} AFTERSALES RECORDS LOADED`);
+                        const workbook = XLSX.read(data, { type: 'array', cellStyles: true });
+                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const parsed = MayaAftersales.parseSheet(XLSX, worksheet);
+                        if (!parsed.rows.length) { showToast("EXCEL FILE HAS NO DATA ROWS"); return; }
+                        const records = parsed.rows.map(row => ({
+                            id: `aftersales_${generateId()}`,
+                            merchantName: getFieldByMatchingKeys(row.details, ['Merchant Name', 'MERCHANT NAME', 'Merchant', 'CLIENT', 'Client', parsed.headers[0]]),
+                            dbaName: getFieldByMatchingKeys(row.details, ['DBA Name', 'DBA NAME', 'DBA', 'Trading Name', 'Business Name']),
+                            details: row.details,
+                            status: row.status,
+                            _sourceFileName: file.name
+                        }));
+                        showConfirmModal(
+                            'Replace aftersales records?',
+                            `Replace all ${state.aftersalesRecords.length} existing aftersales records with ${records.length} records from "${file.name}"? A current-view export may contain only a subset. Cancel keeps existing records unchanged.`,
+                            () => {
+                                state.aftersalesHeaders = parsed.headers;
+                                state.aftersalesRecords = records;
+                                saveState({ kind: 'replace_aftersales' });
+                                renderAftersalesCards();
+                                showToast(`SUCCESS: ${records.length} AFTERSALES RECORDS LOADED — CHECK SYNC STATUS`);
+                            }
+                        );
                     } catch (err) {
                         showToast(`ERROR PARSING EXCEL: ${err.message}`);
                     } finally {
@@ -1256,19 +1282,16 @@
 
             function renderAftersalesCards() {
                 if (!aftersalesCardsContainer) return;
-                const searchTerm = state.aftersalesSearchTerm.toLowerCase().trim();
-                let records = state.aftersalesRecords;
-
-                if (searchTerm) {
-                    records = records.filter(r => 
-                        String(r.merchantName).toLowerCase().includes(searchTerm) ||
-                        String(r.dbaName).toLowerCase().includes(searchTerm) ||
-                        Object.values(r.details || {}).some(val => String(val).toLowerCase().includes(searchTerm)) ||
-                        String(r.status).toLowerCase().includes(searchTerm)
-                    );
-                }
-
-                aftersalesStats.textContent = `Records Loaded: ${state.aftersalesRecords.length}`;
+                if (aftersalesSearchInput.value !== state.aftersalesSearchTerm) aftersalesSearchInput.value = state.aftersalesSearchTerm;
+                const records = currentAftersalesView();
+                const label = aftersalesStatusMode === 'None' ? 'Default' : aftersalesStatusMode;
+                const next = aftersalesStatusMode === 'None' ? 'Resolved' : aftersalesStatusMode === 'Resolved' ? 'Unresolved' : 'Default (unmarked)';
+                aftersalesStatusFilter.textContent = label;
+                aftersalesStatusFilter.title = `Showing ${aftersalesStatusMode === 'None' ? 'unmarked' : aftersalesStatusMode.toLowerCase()} records. Click to show ${next}.`;
+                aftersalesStatusFilter.setAttribute('aria-label', `Status filter: ${label}. Next: ${next}`);
+                aftersalesStats.textContent = `Showing ${records.length} / ${state.aftersalesRecords.length}`;
+                aftersalesExportMenu.querySelector('[data-aftersales-export="view"]').disabled = records.length === 0;
+                aftersalesExportMenu.querySelector('[data-aftersales-export="all"]').disabled = state.aftersalesRecords.length === 0;
 
                 if (state.aftersalesRecords.length === 0) {
                     aftersalesCardsContainer.innerHTML = `
@@ -1283,7 +1306,7 @@
                 if (records.length === 0) {
                     aftersalesCardsContainer.innerHTML = `
                         <div class="corporate-panel-inner border border-red-500 rounded-xl p-6 sm:p-8 text-center">
-                            <p class="uppercase tracking-wider text-xs font-extrabold">NO MATCH FOUND FOR "${state.aftersalesSearchTerm}"</p>
+                            <p class="uppercase tracking-wider text-xs font-extrabold">NO MATCHING RECORDS</p>
                         </div>
                     `;
                     return;
@@ -1675,56 +1698,21 @@
             });
 
             exportAftersalesExcelBtn.addEventListener('click', () => {
-                if (!state.aftersalesRecords || state.aftersalesRecords.length === 0) {
-                    showToast("NO AFTERSALES RECORDS TO EXPORT");
-                    return;
-                }
-
+                if (!state.aftersalesRecords.length) { showToast("NO AFTERSALES RECORDS TO EXPORT"); return; }
+                aftersalesExportMenu.hidden = !aftersalesExportMenu.hidden;
+                exportAftersalesExcelBtn.setAttribute('aria-expanded', String(!aftersalesExportMenu.hidden));
+            });
+            aftersalesExportMenu.addEventListener('click', event => {
+                const button = event.target.closest('[data-aftersales-export]');
+                if (!button || button.disabled) return;
+                const records = button.dataset.aftersalesExport === 'all' ? state.aftersalesRecords : currentAftersalesView();
+                closeAftersalesExport();
+                if (!records.length) { showToast("NO MATCHING RECORDS TO EXPORT"); return; }
                 try {
-                    const headers = [...state.aftersalesHeaders];
-                    const dataArray = [headers];
-
-                    state.aftersalesRecords.forEach(rec => {
-                        const row = state.aftersalesHeaders.map(h => rec.details[h] || '—');
-                        dataArray.push(row);
-                    });
-
-                    const worksheet = XLSX.utils.aoa_to_sheet(dataArray);
-                    const range = XLSX.utils.decode_range(worksheet['!ref']);
-
-                    for (let R = 1; R <= range.e.r; ++R) {
-                        const rec = state.aftersalesRecords[R - 1];
-                        const status = rec ? rec.status : 'None';
-
-                        let fillColor = null;
-                        if (status === 'Resolved') fillColor = "D1FAE5";
-                        if (status === 'Unresolved') fillColor = "FEE2E2";
-
-                        for (let C = 0; C <= range.e.c; ++C) {
-                            const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
-                            if (!worksheet[cellRef]) worksheet[cellRef] = { t: 's', v: '' };
-
-                            worksheet[cellRef].s = {
-                                fill: fillColor ? {
-                                    patternType: "solid",
-                                    fgColor: { rgb: fillColor }
-                                } : undefined,
-                                font: {
-                                    name: "Calibri",
-                                    sz: 11
-                                }
-                            };
-                        }
-                    }
-
-                    const workbook = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(workbook, worksheet, "Aftersales Rechecking");
-
-                    XLSX.writeFile(workbook, "AFTERSALES_RECHECKING_HIGHLIGHTED.xlsx");
-                    showToast("EXCEL EXPORTED WITH COLOR HIGHLIGHTS");
-                } catch (err) {
-                    showToast(`EXPORT FAILED: ${err.message}`);
-                }
+                    const workbook = MayaAftersales.makeWorkbook(XLSX, state.aftersalesHeaders, records);
+                    XLSX.writeFile(workbook, MayaAftersales.exportFilename(state.aftersalesRecords));
+                    showToast(`EXPORTED ${records.length} RECORDS WITH MARKERS`);
+                } catch (err) { showToast(`EXPORT FAILED: ${err.message}`); }
             });
 
             function renderInputFieldTreeHTML(nodes) {

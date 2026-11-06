@@ -6,7 +6,7 @@ const origin=new URL(base).origin;
 const fixture=require('./merge-fixture.cjs');
 const css=fs.readFileSync(process.env.MAYA_TEST_CSS||'/tmp/maya-pages-test.css','utf8');
 (async()=>{
- for(const file of ['','sync.js','sync-changes.js']){
+ for(const file of ['','sync.js','sync-changes.js','aftersales-workbook.js']){
   const response=await fetch(`${base}/${file}`);assert.equal(response.status,200);
   assert.match(response.headers.get('cache-control'),/max-age=0/);assert.equal(response.headers.get('x-content-type-options'),'nosniff');
   assert.match(response.headers.get('content-type'),file?/javascript/:/text\/html/);

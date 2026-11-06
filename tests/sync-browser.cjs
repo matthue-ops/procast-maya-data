@@ -97,6 +97,7 @@ try{
  const second=await a.context.newPage();second.on('dialog',d=>d.accept());await second.goto('http://127.0.0.1:8000/');await status(second,'Another Maya tab');assert.equal(await second.locator('#app').evaluate(e=>e.inert),true);await second.close();console.log('PASS duplicate writer tabs are blocked');
  // Bulk replaces remain explicit; unrelated edits still merge safely around them.
  await b.page.click('#tab-aftersales');await b.page.locator('#aftersales-file-input').setInputFiles({name:'fixture.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:Buffer.from('synthetic')});
+ await b.page.locator('#confirm-modal').waitFor({state:'visible'});await b.page.click('#confirm-action-btn');
  await status(b.page,'All changes saved to cloud');assert.ok(b.batches.at(-1).p_changes.some(c=>c.kind==='replace_aftersales'));await b.page.click('#tab-collection');console.log('PASS Excel replacement uses the protected group operation');
  // Seed additional records through the real RPC to check paging + whole-dataset search.
  cloud=await rpc('maya_read_state');
