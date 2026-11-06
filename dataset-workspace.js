@@ -262,6 +262,13 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
       ),
     );
   }
+  function copyRecord(ds, row) {
+    navigator.clipboard
+      .writeText(
+        ds.headers.map((h) => `${h}: ${row.details[h] ?? ""}`).join("\n"),
+      )
+      .catch(() => notify("Clipboard unavailable"));
+  }
   function recordDialog(ds, row) {
     const inputs = ds.headers.map((header) => ({
       header,
@@ -276,6 +283,15 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
       el(
         "div",
         {},
+        ...(ds.kind === "aftersales"
+          ? [
+              el(
+                "button",
+                { onclick: () => copyRecord(ds, row) },
+                "Copy record",
+              ),
+            ]
+          : []),
         inputs.map(({ header, input }) =>
           el(
             "label",
@@ -367,15 +383,36 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
       el(
         "div",
         {},
-        el("strong", {}, nameOf(row, ds.headers)),
         el(
-          "small",
-          {},
-          status === "None"
-            ? ds.kind === "visits"
-              ? "Not visited"
-              : "Unmarked"
-            : status,
+          "div",
+          { class: "workspace-card-heading" },
+          el(
+            "strong",
+            { class: "desktop-record-name" },
+            nameOf(row, ds.headers),
+          ),
+          ...(ds.kind === "aftersales"
+            ? [
+                el(
+                  "button",
+                  {
+                    class: "phone-record-name",
+                    onclick: () => recordDialog(ds, row),
+                    "aria-label": "Open / edit " + nameOf(row, ds.headers),
+                  },
+                  nameOf(row, ds.headers),
+                ),
+              ]
+            : []),
+          el(
+            "small",
+            {},
+            status === "None"
+              ? ds.kind === "visits"
+                ? "Not visited"
+                : "Unmarked"
+              : status,
+          ),
         ),
         el(
           "p",
@@ -390,18 +427,19 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
         "div",
         { class: "workspace-actions" },
         buttons,
-        el("button", { onclick: () => recordDialog(ds, row) }, "Open / edit"),
         el(
           "button",
           {
-            onclick: () =>
-              navigator.clipboard
-                .writeText(
-                  ds.headers
-                    .map((h) => `${h}: ${row.details[h] ?? ""}`)
-                    .join("\n"),
-                )
-                .catch(() => notify("Clipboard unavailable")),
+            class: "desktop-record-action",
+            onclick: () => recordDialog(ds, row),
+          },
+          "Open / edit",
+        ),
+        el(
+          "button",
+          {
+            class: "desktop-record-action",
+            onclick: () => copyRecord(ds, row),
           },
           "Copy",
         ),
@@ -521,7 +559,11 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
       );
       const content = el(
         "section",
-        { class: "workspace-panel" },
+        {
+          class:
+            "workspace-panel" +
+            (kind === "aftersales" ? " compact-aftersales" : ""),
+        },
         el(
           "header",
           {},
@@ -537,17 +579,41 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
           "div",
           { class: "workspace-toolbar" },
           select,
-          el(
-            "button",
-            { disabled: !store.ready(), onclick: () => file.click() },
-            "Upload Excel",
-          ),
-          el(
-            "button",
-            { disabled: datasets.length < 2, onclick: () => mergeDialog(kind) },
-            "Merge files",
-          ),
-          exportMenu,
+          (() => {
+            const actions = el(
+              "div",
+              { class: "file-action-items" },
+              el(
+                "button",
+                { disabled: !store.ready(), onclick: () => file.click() },
+                "Upload Excel",
+              ),
+              el(
+                "button",
+                {
+                  disabled: datasets.length < 2,
+                  onclick: () => mergeDialog(kind),
+                },
+                "Merge files",
+              ),
+              exportMenu,
+            );
+            const toggle = el(
+              "button",
+              {
+                class: "phone-file-actions",
+                "aria-expanded": "false",
+                onclick: () => {
+                  const expanded =
+                    toggle.getAttribute("aria-expanded") !== "true";
+                  toggle.setAttribute("aria-expanded", String(expanded));
+                  actions.classList.toggle("phone-actions-open", expanded);
+                },
+              },
+              "File actions ▾",
+            );
+            return el("div", { class: "file-action-menu" }, toggle, actions);
+          })(),
         ),
         el(
           "div",
