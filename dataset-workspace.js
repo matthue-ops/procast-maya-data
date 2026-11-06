@@ -50,7 +50,10 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
       e.preventDefault();
       close();
     });
-    dialog.addEventListener("input", () => (dialog.dataset.dirty = "true"));
+    dialog.addEventListener("input", (event) => {
+      if (!event.target.hasAttribute("data-local-preference"))
+        dialog.dataset.dirty = "true";
+    });
     document.body.append(dialog);
     dialog.showModal();
   }
@@ -269,68 +272,373 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
       )
       .catch(() => notify("Clipboard unavailable"));
   }
-  function recordDialog(ds, row) {
-    const inputs = ds.headers.map((header) => ({
-      header,
-      input: el("input", {
-        type: "text",
-        value: String(row.details[header] ?? ""),
-        "aria-label": header,
-      }),
-    }));
-    modal(
-      nameOf(row, ds.headers),
-      el(
-        "div",
-        {},
-        ...(ds.kind === "aftersales"
+  let selectedFilters = {};
+  try {
+    selectedFilters = JSON.parse(
+      localStorage.getItem("maya-file-field-filters") || "{}",
+    );
+    if (
+      !selectedFilters ||
+      Array.isArray(selectedFilters) ||
+      typeof selectedFilters !== "object"
+    )
+      selectedFilters = {};
+  } catch {}
+  function chooseFilter(id, value) {
+    selectedFilters[id] = value;
+    try {
+      localStorage.setItem(
+        "maya-file-field-filters",
+        JSON.stringify(selectedFilters),
+      );
+    } catch {}
+  }
+  function recordDialog(initial, initialRow) {
+    let editing = null,
+      draft = "";
+    const body = el("div");
+    const message = el("p", { role: "status", class: "field-feedback" });
+    const copy = async (text) => {
+      try {
+        await navigator.clipboard.writeText(text);
+        message.textContent = "Copied";
+      } catch {
+        message.textContent =
+          "Copy unavailable. Please allow clipboard access.";
+      }
+    };
+    function draw() {
+      const ds = store.state().datasets.find((d) => d.id === initial.id);
+      const row = ds?.records.find(
+        (r) => String(r.id) === String(initialRow.id),
+      );
+      if (!row || ds.generation !== initial.generation) {
+        body.replaceChildren(
+          el(
+            "p",
+            {},
+            "This file was replaced or deleted. Close and reopen the record.",
+          ),
+        );
+        return;
+      }
+      const filters = ds.filters || {};
+      const active = filters[selectedFilters[ds.id]];
+      const fields = active
+        ? ds.headers.filter((h) => active.fields.includes(h))
+        : ds.headers;
+      const picker = el(
+        "select",
+        {
+          "aria-label": "Field filter",
+          "data-local-preference": "",
+          disabled: !!editing,
+          onchange: (e) => {
+            chooseFilter(ds.id, e.target.value);
+            draw();
+          },
+        },
+        el("option", { value: "", selected: !active }, "All fields"),
+        Object.entries(filters).map(([id, f]) =>
+          el(
+            "option",
+            { value: id, selected: selectedFilters[ds.id] === id },
+            f.name,
+          ),
+        ),
+      );
+      const missing =
+        active?.fields.filter((h) => !ds.headers.includes(h)) || [];
+      body.replaceChildren(
+        el(
+          "div",
+          { class: "workspace-toolbar" },
+          picker,
+          el(
+            "button",
+            {
+              disabled: !!editing || !store.state().fieldFiltersEnabled,
+              onclick: () => manageFilters(ds, () => recordDialog(ds, row)),
+            },
+            "Manage filters",
+          ),
+        ),
+        ...(!store.state().fieldFiltersEnabled
           ? [
               el(
-                "button",
-                { onclick: () => copyRecord(ds, row) },
-                "Copy record",
+                "p",
+                {},
+                "Saved field filters require SQL upgrade 10. Existing records remain available.",
               ),
             ]
           : []),
-        inputs.map(({ header, input }) =>
+        ...(missing.length
+          ? [
+              el(
+                "p",
+                { role: "status" },
+                "Filter needs review — missing columns: " + missing.join(", "),
+              ),
+            ]
+          : []),
+        ...fields.map((header) => {
+          const field = el(
+            "div",
+            { class: "workspace-read-field" },
+            el("strong", {}, header),
+          );
+          if (editing === header) {
+            const input = el("input", {
+              value: draft,
+              "aria-label": header,
+              oninput: (e) => (draft = e.target.value),
+            });
+            field.append(
+              input,
+              el(
+                "div",
+                { class: "workspace-actions" },
+                el(
+                  "button",
+                  {
+                    onclick: () => {
+                      const latest = store
+                        .state()
+                        .datasets.find((d) => d.id === ds.id);
+                      if (!latest || latest.generation !== ds.generation) {
+                        message.textContent =
+                          "File replaced or deleted. Reopen the record.";
+                        return;
+                      }
+                      if (draft !== String(row.details[header] ?? ""))
+                        add([
+                          {
+                            kind: "patch_record",
+                            id: ds.id,
+                            generation: ds.generation,
+                            recordId: String(row.id),
+                            fields: { [header]: draft },
+                            beforeRecord: row,
+                          },
+                        ]);
+                      editing = null;
+                      dialog.dataset.dirty = "false";
+                      draw();
+                    },
+                  },
+                  "Save",
+                ),
+                el(
+                  "button",
+                  {
+                    onclick: () => {
+                      editing = null;
+                      dialog.dataset.dirty = "false";
+                      draw();
+                    },
+                  },
+                  "Cancel",
+                ),
+              ),
+            );
+          } else
+            field.append(
+              el(
+                "button",
+                {
+                  class: "copy-field-value",
+                  "aria-label": "Copy " + header,
+                  onclick: () => copy(String(row.details[header] ?? "")),
+                },
+                String(row.details[header] ?? "") || "—",
+              ),
+              el(
+                "button",
+                {
+                  "aria-label": "Edit " + header,
+                  disabled: !!editing,
+                  onclick: () => {
+                    editing = header;
+                    draft = String(row.details[header] ?? "");
+                    draw();
+                  },
+                },
+                "✎",
+              ),
+            );
+          return field;
+        }),
+        message,
+        el(
+          "div",
+          { class: "workspace-actions" },
+          el(
+            "button",
+            {
+              onclick: () =>
+                copy(
+                  ds.headers
+                    .map((h) => `${h}: ${row.details[h] ?? ""}`)
+                    .join("\n"),
+                ),
+            },
+            "Copy all fields",
+          ),
+          el(
+            "button",
+            {
+              onclick: () =>
+                copy(
+                  fields.map((h) => `${h}: ${row.details[h] ?? ""}`).join("\n"),
+                ),
+            },
+            "Copy filtered fields",
+          ),
+        ),
+      );
+    }
+    modal(nameOf(initialRow, initial.headers), body);
+    draw();
+  }
+  function manageFilters(initial, back) {
+    const body = el("div"),
+      notice = el("p", { role: "status" });
+    const ds = () => store.state().datasets.find((d) => d.id === initial.id);
+    function edit(id) {
+      const current = ds();
+      if (!current || current.generation !== initial.generation) {
+        notice.textContent = "File changed. Reopen it.";
+        return;
+      }
+      const previous = current.filters?.[id] || null;
+      const name = el("input", {
+        "aria-label": "Filter name",
+        maxLength: 80,
+        value: previous?.name || "",
+      });
+      const checks = [
+        ...new Set([...current.headers, ...(previous?.fields || [])]),
+      ].map((h) => ({
+        h,
+        input: el("input", {
+          type: "checkbox",
+          checked: previous?.fields.includes(h) || false,
+        }),
+      }));
+      body.replaceChildren(
+        el("label", { class: "workspace-field" }, "Filter name", name),
+        ...checks.map(({ h, input }) =>
           el(
             "label",
-            { class: "workspace-field" },
-            el("span", {}, header),
+            { class: "workspace-check" },
             input,
+            h +
+              (current.headers.includes(h)
+                ? ""
+                : " (missing column — uncheck to remove)"),
+          ),
+        ),
+        notice,
+        el(
+          "button",
+          {
+            onclick: () => {
+              const fields = checks
+                .filter((x) => x.input.checked)
+                .map((x) => x.h);
+              if (
+                !name.value.trim() ||
+                !fields.length ||
+                fields.some((h) => !current.headers.includes(h))
+              ) {
+                notice.textContent =
+                  "Enter a name and select existing columns.";
+                return;
+              }
+              add([
+                {
+                  kind: "set_filter",
+                  id: current.id,
+                  generation: current.generation,
+                  filterId: id,
+                  expectedFilter: previous,
+                  filter: { name: name.value.trim(), fields },
+                },
+              ]);
+              list();
+            },
+          },
+          "Save filter",
+        ),
+        el("button", { onclick: list }, "Cancel"),
+      );
+    }
+    function list() {
+      if (dialog) dialog.dataset.dirty = "false";
+      const current = ds();
+      if (!current || current.generation !== initial.generation) {
+        body.replaceChildren(el("p", {}, "File changed. Close and reopen."));
+        return;
+      }
+      body.replaceChildren(
+        ...Object.entries(current.filters || {}).map(([id, f]) =>
+          el(
+            "div",
+            { class: "workspace-actions" },
+            el("span", {}, f.name),
+            el("button", { onclick: () => edit(id) }, "Edit / rename"),
+            el(
+              "button",
+              {
+                onclick: () => {
+                  if (
+                    confirm(
+                      `Delete filter ${f.name}? Records remain unchanged.`,
+                    )
+                  ) {
+                    add([
+                      {
+                        kind: "delete_filter",
+                        id: current.id,
+                        generation: current.generation,
+                        filterId: id,
+                        expectedFilter: f,
+                      },
+                    ]);
+                    list();
+                  }
+                },
+              },
+              "Delete filter",
+            ),
           ),
         ),
         el(
           "button",
-          {
-            class: "primary",
-            onclick: () => {
-              const fields = Object.fromEntries(
-                inputs
-                  .filter(
-                    ({ header, input }) =>
-                      input.value !== String(row.details[header] ?? ""),
-                  )
-                  .map(({ header, input }) => [header, input.value]),
-              );
-              if (Object.keys(fields).length)
-                add([
-                  {
-                    kind: "patch_record",
-                    id: ds.id,
-                    generation: ds.generation,
-                    recordId: String(row.id),
-                    fields,
-                    beforeRecord: row,
-                  },
-                ]);
-              close();
-            },
-          },
-          "Save changed fields",
+          { onclick: () => edit(crypto.randomUUID()) },
+          "Add filter",
         ),
-      ),
-    );
+        el("button", { onclick: back }, "Back to record"),
+      );
+    }
+    modal("Manage filters for " + initial.name, body);
+    list();
+  }
+  function deleteFile(ds) {
+    if (
+      confirm(
+        `Delete ${ds.name} (${ds.records.length} records)? Only this file will be removed on all synced devices. Export a backup first if needed.`,
+      )
+    )
+      add([
+        {
+          kind: "delete_dataset",
+          id: ds.id,
+          generation: ds.generation,
+          expectedRecords: ds.records,
+          expectedHeaders: ds.headers,
+        },
+      ]);
   }
   function visible(ds, view) {
     const query = view.query.trim().toLowerCase();
@@ -391,19 +699,17 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
             { class: "desktop-record-name" },
             nameOf(row, ds.headers),
           ),
-          ...(ds.kind === "aftersales"
-            ? [
-                el(
-                  "button",
-                  {
-                    class: "phone-record-name",
-                    onclick: () => recordDialog(ds, row),
-                    "aria-label": "Open / edit " + nameOf(row, ds.headers),
-                  },
-                  nameOf(row, ds.headers),
-                ),
-              ]
-            : []),
+          ...[
+            el(
+              "button",
+              {
+                class: "phone-record-name",
+                onclick: () => recordDialog(ds, row),
+                "aria-label": "Open record " + nameOf(row, ds.headers),
+              },
+              nameOf(row, ds.headers),
+            ),
+          ],
           el(
             "small",
             {},
@@ -433,7 +739,7 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
             class: "desktop-record-action",
             onclick: () => recordDialog(ds, row),
           },
-          "Open / edit",
+          "Open record",
         ),
         el(
           "button",
@@ -560,9 +866,7 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
       const content = el(
         "section",
         {
-          class:
-            "workspace-panel" +
-            (kind === "aftersales" ? " compact-aftersales" : ""),
+          class: "workspace-panel compact-aftersales",
         },
         el(
           "header",
@@ -587,6 +891,11 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
                 "button",
                 { disabled: !store.ready(), onclick: () => file.click() },
                 "Upload Excel",
+              ),
+              el(
+                "button",
+                { disabled: !ds, onclick: () => deleteFile(ds) },
+                "Delete file",
               ),
               el(
                 "button",
@@ -657,29 +966,6 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
                   ),
               },
               "Download dataset backup",
-            ),
-            el(
-              "button",
-              {
-                disabled: !ds,
-                onclick: () => {
-                  if (
-                    confirm(
-                      `Delete only ${ds.name}? Other files remain unchanged.`,
-                    )
-                  )
-                    add([
-                      {
-                        kind: "delete_dataset",
-                        id: ds.id,
-                        generation: ds.generation,
-                        expectedRecords: ds.records,
-                        expectedHeaders: ds.headers,
-                      },
-                    ]);
-                },
-              },
-              "Delete selected file",
             ),
             el(
               "button",
