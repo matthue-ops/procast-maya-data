@@ -66,7 +66,11 @@
             uploadOrder: null,
             uploadedAt: null,
           });
-        else if (d && a.kind === "delete_dataset")
+        else if (d && ["set_filter", "delete_filter"].includes(a.kind)) {
+          d.filters ||= {};
+          if (a.kind === "set_filter") d.filters[a.filterId] = clone(a.filter);
+          else delete d.filters[a.filterId];
+        } else if (d && a.kind === "delete_dataset")
           state.datasets = state.datasets.filter((x) => x.id !== a.id);
         else if (d && ["set_marker", "patch_record"].includes(a.kind)) {
           const row = d.records.find((x) => String(x.id) === a.recordId);

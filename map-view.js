@@ -176,7 +176,10 @@ window.createMayaMap = function ({
     const groups = new Map();
     for (const p of points.filter((p) => p.position)) {
       const pixel = map.project(p.position, map.getZoom()),
-        key = `${Math.floor(pixel.x / 56)},${Math.floor(pixel.y / 56)}`;
+        key =
+          map.getZoom() >= 17
+            ? p.position.join(",")
+            : `${Math.floor(pixel.x / 56)},${Math.floor(pixel.y / 56)}`;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(p);
     }
@@ -207,7 +210,7 @@ window.createMayaMap = function ({
         }).addTo(layer);
         marker.on("click", () => {
           const bounds = L.latLngBounds(group.map((p) => p.position));
-          if (map.getZoom() >= 18) {
+          if (map.getZoom() >= 17) {
             marker
               .bindPopup(
                 el(
