@@ -290,3 +290,90 @@
 .map-panel .leaflet-control-attribution a {
   color: #006b94;
 }
+/* Aftersales phone controls share the same handlers as the desktop controls. */
+.phone-record-name,
+.phone-file-actions {
+  display: none !important;
+}
+.file-action-items {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .compact-aftersales .workspace-records {
+    gap: 6px;
+  }
+  .compact-aftersales .workspace-card {
+    padding: 9px 10px;
+  }
+  .compact-aftersales .workspace-card-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .compact-aftersales .workspace-card-heading small {
+    flex-shrink: 0;
+    font-size: 10px;
+  }
+  .compact-aftersales .workspace-card-heading .desktop-record-name,
+  .compact-aftersales .desktop-record-action {
+    display: none;
+  }
+  .compact-aftersales .phone-record-name {
+    display: block !important;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    min-height: 44px;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: left;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .compact-aftersales .workspace-card p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 0;
+  }
+  .compact-aftersales .workspace-card .workspace-actions {
+    flex-wrap: nowrap;
+    margin: 6px 0 0;
+    gap: 6px;
+  }
+  .compact-aftersales .workspace-card .workspace-actions button {
+    flex: 1;
+    min-height: 44px;
+    padding: 6px 10px;
+  }
+  .compact-aftersales .phone-file-actions {
+    display: inline-flex !important;
+  }
+  .compact-aftersales .file-action-items {
+    display: none;
+    margin-top: 6px;
+  }
+  .compact-aftersales .file-action-items.phone-actions-open {
+    display: flex;
+  }
+  .compact-aftersales .workspace-toolbar {
+    gap: 6px;
+    margin: 7px 0;
+  }
+  .compact-aftersales header [data-workspace-status] {
+    font-size: 12px;
+  }
+}
+@media (max-width: 640px) {
+  .compact-aftersales .workspace-records {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .compact-aftersales .workspace-card {
+    min-width: 0;
+  }
+}
