@@ -8,8 +8,8 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const output = path.join(root, 'dist');
 const build = () => execFileSync(process.execPath, [path.join(root, 'scripts/build-pages.mjs')], { cwd: os.tmpdir(), stdio: 'pipe' });
 build(); build();
-assert.deepEqual((await readdir(output)).sort(), ['404.html', '_headers', 'index.html', 'sync-changes.js', 'sync.js']);
-for (const file of ['index.html', 'sync.js', 'sync-changes.js']) assert.deepEqual(await readFile(path.join(root,file)),await readFile(path.join(output,file)));
+assert.deepEqual((await readdir(output)).sort(), ['404.html', '_headers', 'aftersales-workbook.js', 'index.html', 'sync-changes.js', 'sync.js']);
+for (const file of ['index.html', 'sync.js', 'sync-changes.js', 'aftersales-workbook.js']) assert.deepEqual(await readFile(path.join(root,file)),await readFile(path.join(output,file)));
 console.log('PASS repeatable build publishes only the expected files and preserves app bytes');
 const unknown = path.join(output, '.pages-build-test-unexpected');
 try {

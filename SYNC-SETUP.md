@@ -7,7 +7,7 @@ Completed records save automatically on the device, then the durable outbox send
 The initial revision migration (`01-sync-migration.sql`) is already installed in your project. **Do not rerun it.** This update requires a new manual SQL upgrade; no Edge Function or new secret is needed.
 
 1. Preserve a database backup and pending copies from each device. Close old app tabs. Opening old versions can send pending work.
-2. Prepare `index.html`, `sync.js`, and `sync-changes.js` for deployment together in the same directory over HTTPS.
+2. Prepare `index.html`, `sync.js`, `sync-changes.js`, and `aftersales-workbook.js` for deployment together in the same directory over HTTPS.
 3. Run `supabase/manual/04-automatic-merge.sql` as postgres in Supabase SQL Editor, then `05-verify-automatic-merge.sql`. The migration is transactional and intentionally rejects reruns/collisions. It validates existing IDs and payload shapes before committing. If it fails, keep the error; do not bypass validation.
 4. Expected verification: protocol 2; read/merge/poll allowed for anon and authenticated; direct writes, legacy saves, and private history reads denied.
 5. Deploy the matching frontend, then reload each device. Older revision-only frontends lose cloud-writing access at cutover, so minimize the gap between SQL and app deployment. Do not continue entering data in old tabs.
