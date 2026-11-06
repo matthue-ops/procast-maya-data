@@ -1,5 +1,5 @@
 /* Durable, ordered change outbox. Database acceptance orders same-field edits. */
-window.createMayaSync = async function ({ client, getState, applyState, canRefresh, hasDraft = () => false }) {
+window.createMayaSync = async function ({ client, getState, applyState, canRefresh, hasDraft = () => false, extraStatus = () => null }) {
     const { dataOnly, changesBetween } = window.MayaChanges;
     const clone = value => structuredClone(value);
     const app = document.getElementById('app');
@@ -24,6 +24,8 @@ window.createMayaSync = async function ({ client, getState, applyState, canRefre
         else if (record.outbox.length) text = 'Changes saved on this device — waiting to sync';
         else if (record.revision != null) text = 'All changes saved to cloud';
         else text = 'Device ready — cloud connection not yet confirmed';
+        const workspaceStatus = extraStatus();
+        if (workspaceStatus && ready && durable && !busy && !record.outbox.length && !record.legacyPending && !record.review && !fatal) text = workspaceStatus;
         $('sync-status').textContent = text;
         $('sync-status').dataset.state = !durable ? 'error' : (!navigator.onLine || networkUnavailable) ? 'offline' : busy ? 'syncing' : 'saved';
         $('sync-cloud-time').textContent = record?.cloudSavedAt
@@ -219,7 +221,8 @@ window.createMayaSync = async function ({ client, getState, applyState, canRefre
                 if (stored) enqueue(sync);
             });
         },
-        refresh() { return enqueue(sync); }
+        refresh() { return enqueue(sync); },
+        updateStatus: display
     };
     function download(value, name) {
         const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }));

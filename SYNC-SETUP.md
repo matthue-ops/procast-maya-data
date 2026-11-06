@@ -72,3 +72,7 @@ node tests/sync-browser.cjs
 Browser tests intercept every external request and use the isolated PostgreSQL functions through a local binding. They test offline reload, reconnect/timer retries, same-field ordering, device names, lost responses, edits during upload, storage errors, drafts, imports, pagination, stale generations, and phone layout. `MAYA_TEST_CSS` can point to another temporary stylesheet; database helpers accept `MAYA_TEST_CONTAINER` only for container names ending in `test`.
 
 No live Supabase writes or production deployment are part of these tests.
+
+## Independent datasets and map upgrade
+
+The new Map / multiple Excel files / List to Visit feature adds an independent durable sync channel and a manual SQL cutover. Read [maps-and-datasets.md](docs/deployment/maps-and-datasets.md) before deploying. Migration 07 requires separate live-database approval; verification 08 is read-only and rollback 09 retains new tables. Main backups do not include the new files: also download the dataset recovery backup. The older Aftersales browser suite above targets the previous UI; use the new workspace suites for this version.

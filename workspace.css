@@ -1,0 +1,292 @@
+.maya-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: min(100%, 620px);
+  gap: 4px;
+}
+.maya-tabs button {
+  min-height: 44px;
+}
+.workspace-panel,
+.map-panel {
+  padding: 18px;
+  border: 1px solid #64748b;
+  border-radius: 12px;
+  background: #1e293b;
+}
+.light-mode .workspace-panel,
+.light-mode .map-panel {
+  background: #fff;
+}
+.workspace-panel h2,
+.map-panel h2 {
+  font-size: 18px;
+  font-weight: 700;
+}
+.workspace-panel small,
+.map-record small {
+  display: block;
+  font-size: 12px;
+  opacity: 0.8;
+}
+.workspace-toolbar,
+.workspace-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+.workspace-toolbar input,
+.workspace-toolbar select {
+  flex: 1;
+  min-width: 140px;
+}
+.workspace-toolbar input,
+.workspace-toolbar select,
+.workspace-dialog input,
+.workspace-dialog select {
+  font-size: 16px;
+  padding: 10px;
+  border: 1px solid #64748b;
+  border-radius: 7px;
+  min-height: 44px;
+  background: transparent;
+  color: inherit;
+}
+.workspace-panel button,
+.map-panel button,
+.map-panel a,
+.workspace-dialog button,
+.workspace-export summary {
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid #64748b;
+  border-radius: 7px;
+  font-size: 12px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+.workspace-panel button:disabled,
+.map-panel button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.workspace-panel .primary,
+.workspace-dialog .primary {
+  background: #2563eb;
+  color: white;
+}
+.workspace-records {
+  display: grid;
+  gap: 10px;
+}
+.workspace-card,
+.map-record {
+  border: 1px solid #64748b;
+  border-radius: 10px;
+  padding: 14px;
+  overflow-wrap: anywhere;
+}
+.workspace-card {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+}
+.workspace-card p {
+  font-size: 12px;
+  margin-top: 4px;
+  opacity: 0.8;
+}
+.status-resolved,
+.status-visited {
+  border-color: #16a34a;
+  background: #16a34a12;
+}
+.status-unresolved {
+  border-color: #dc2626;
+  background: #dc262612;
+}
+.workspace-export {
+  position: relative;
+}
+.workspace-export > div {
+  position: absolute;
+  right: 0;
+  z-index: 40;
+  width: 190px;
+  background: #1e293b;
+  border: 1px solid #64748b;
+  padding: 6px;
+  border-radius: 8px;
+  display: grid;
+}
+.light-mode .workspace-export > div {
+  background: white;
+}
+.workspace-dialog {
+  position: fixed;
+  padding: 20px;
+  background: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid #64748b;
+  border-radius: 14px;
+  max-height: 88dvh;
+  overflow: auto;
+  width: min(520px, calc(100vw - 24px));
+  margin: auto;
+}
+.light-mode .workspace-dialog {
+  background: white;
+  color: black;
+}
+.workspace-dialog::backdrop {
+  background: #020617b3;
+}
+.workspace-dialog header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.workspace-dialog h3 {
+  font-weight: 700;
+}
+.workspace-dialog p {
+  font-size: 13px;
+  margin: 12px 0;
+}
+.workspace-dialog input:not([type="checkbox"]),
+.workspace-dialog select {
+  width: 100%;
+}
+.workspace-field {
+  display: grid;
+  gap: 5px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.workspace-check {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+}
+.workspace-dialog button {
+  margin: 6px 6px 0 0;
+}
+#maya-map-canvas {
+  height: 58dvh;
+  min-height: 300px;
+  border-radius: 10px;
+  background: #cbd5e1;
+  z-index: 0;
+}
+.map-message {
+  font-size: 12px;
+  margin: 10px 0;
+}
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+}
+.map-legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.map-legend i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.map-record-panel summary {
+  padding: 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.map-record-list {
+  max-height: 40dvh;
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+}
+.map-record .workspace-actions {
+  margin-bottom: 0;
+}
+.map-cluster {
+  border-radius: 50%;
+  background: #2563eb;
+  color: white;
+  border: 2px solid white;
+  text-align: center;
+  line-height: 32px;
+  font-weight: bold;
+  box-shadow: 0 1px 5px #0006;
+}
+.map-overlap-list {
+  max-height: 240px;
+  overflow: auto;
+}
+.leaflet-popup-content .workspace-actions button,
+.leaflet-popup-content .workspace-actions a {
+  color: #111;
+  min-height: 40px;
+  padding: 6px;
+  border: 1px solid #64748b;
+}
+.map-panel .leaflet-control-attribution a {
+  display: inline;
+  padding: 0;
+  border: 0;
+  font-size: 11px;
+  min-height: 0;
+}
+@media (max-width: 640px) {
+  .maya-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+  .workspace-panel,
+  .map-panel {
+    padding: 12px;
+  }
+  .workspace-card {
+    display: block;
+  }
+  .workspace-card .workspace-actions {
+    margin-top: 10px;
+  }
+  .workspace-toolbar > select {
+    width: 100%;
+    flex-basis: 100%;
+  }
+  .workspace-dialog {
+    padding: 16px;
+  }
+  #maya-map-canvas {
+    height: 52dvh;
+  }
+  .map-record-panel {
+    border-top: 1px solid #64748b;
+    margin-top: 8px;
+  }
+  .map-record-list {
+    max-height: 35dvh;
+  }
+}
+/* Keep attribution legible in both application themes. */
+.map-panel .leaflet-control-attribution {
+  color: #111;
+  background: rgba(255, 255, 255, 0.9);
+}
+.map-panel .leaflet-control-attribution a {
+  color: #006b94;
+}
