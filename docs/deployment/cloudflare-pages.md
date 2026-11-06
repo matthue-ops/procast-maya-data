@@ -100,3 +100,7 @@ node tests/pages-smoke.cjs
 `PAGES_TEST_URL` can target the deployed Pages URL for the same hosting checks; `MAYA_TEST_CSS` selects a temporary generated stylesheet. External browser APIs are mocked. The HTTP checks still contact the target host to validate real routing/assets/headers.
 
 Wrangler's local emulator applies the `_headers` rule correctly, but a direct request to the reserved `/_headers` path currently produces an emulator ENOTDIR/502 rather than a normal public route. The migration does not expose or link that internal path; ordinary missing app paths are tested as 404. Live edge behavior remains to be checked after deployment.
+
+## Later maps and dataset feature
+
+The feature branch expands the public build to 20 allowlisted files, including workspace modules, map modules, CSS and Leaflet assets. Its SQL upgrade is separate from the original hosting migration. See [maps-and-datasets.md](maps-and-datasets.md) for the required coordinated database approval and cutover.

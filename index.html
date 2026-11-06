@@ -199,6 +199,8 @@
         .aftersales-export-menu button:hover:not(:disabled), .aftersales-export-menu button:focus-visible { background: #64748b33; }
         body.light-mode .aftersales-export-menu { background: #fff; }
     </style>
+    <link rel="stylesheet" href="./workspace.css">
+    <link rel="stylesheet" href="./vendor/leaflet/leaflet.css">
 </head>
 <body class="dark-mode min-h-screen relative overflow-x-hidden">
 
@@ -221,7 +223,7 @@
                         <span id="device-name-feedback" role="status" class="sync-caption"></span>
                         <span id="sync-local-time" class="sync-caption">Local edit: Not available</span>
                         <button id="save-device-btn" type="button" disabled>Save on this device</button>
-                        <button id="download-local-btn" type="button">Download device backup</button>
+                        <button id="download-local-btn" type="button">Download Saved Records backup</button>
                         <button id="download-history-btn" type="button">Download preserved copies</button>
                         <p class="sync-caption">Records save automatically after you finish the record form. Backups are recovery files.</p>
                     </div>
@@ -253,13 +255,15 @@
             <!-- Controls, View Tabs & Theme Toggle -->
             <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-between md:justify-end">
                 <!-- View Switcher Tabs -->
-                <div class="grid grid-cols-2 bg-slate-900/50 p-1 rounded-lg border border-slate-700 w-full sm:w-80">
+                <div class="maya-tabs bg-slate-900/50 p-1 rounded-lg border border-slate-700">
                     <button id="tab-collection" class="px-3 py-2 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider transition bg-blue-600 text-white text-center">
                         Saved Records
                     </button>
                     <button id="tab-aftersales" class="px-3 py-2 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider transition text-slate-400 hover:text-white text-center">
-                        Aftersales Rechecking
+                        Aftersales
                     </button>
+                    <button id="tab-visits" class="px-3 py-2 rounded-md text-xs font-bold">List to Visit</button>
+                    <button id="tab-map" class="px-3 py-2 rounded-md text-xs font-bold">Map</button>
                 </div>
 
                 <button
@@ -396,6 +400,8 @@
 
         <!-- ================= VIEW 2: AFTERSALES RECHECKING MODULE ================= -->
         <div id="view-aftersales-container" class="space-y-4 sm:space-y-6 hidden">
+            <div id="dataset-aftersales"></div>
+            <div id="legacy-aftersales" hidden>
             <section class="corporate-panel p-4 sm:p-6 rounded-xl">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 border-b pb-4 gap-3">
                     <div class="flex items-center gap-2.5 sm:gap-3">
@@ -468,7 +474,11 @@
                     </div>
                 </div>
             </section>
+            </div>
         </div>
+
+        <div id="view-visits-container" class="hidden"></div>
+        <div id="view-map-container" class="hidden"></div>
 
         <dialog id="create-record-dialog" aria-label="Create record">
                 <!-- STEP 2: ADD NEW ESTABLISHMENT -->
@@ -601,6 +611,11 @@
     </div>
 
     <script src="./aftersales-workbook.js"></script>
+    <script src="./workspace-tools.js"></script>
+    <script src="./workspace-store.js"></script>
+    <script src="./dataset-workspace.js"></script>
+    <script src="./map-model.js"></script>
+    <script src="./map-view.js"></script>
     <script src="./sync-changes.js"></script>
     <script src="./sync.js"></script>
     <script>
@@ -638,7 +653,7 @@
             const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
             // Local persistence and cloud RPCs are isolated in sync.js.
-            let deviceSync;
+            let deviceSync, workspaceStore, datasetWorkspace, mapView;
             let applyingCloud = false;
             let firstRestore = true;
             function applySavedState(saved) {
@@ -683,6 +698,7 @@
             async function loadState() {
                 deviceSync = await window.createMayaSync({
                     client: _supabase,
+                    extraStatus: () => workspaceStore?.externalStatus(),
                     getState: () => state,
                     applyState: applySavedState,
                     canRefresh: () => !document.querySelector('.fixed[id$="modal"]:not(.hidden)')
@@ -713,24 +729,23 @@
             const viewAftersalesContainer = document.getElementById('view-aftersales-container');
 
             function switchTab(tabName) {
+                if (!['collection', 'aftersales', 'visits', 'map'].includes(tabName)) tabName = 'collection';
                 state.activeTab = tabName;
-                if (tabName === 'collection') {
-                    tabCollection.className = "px-3 py-2 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider transition bg-blue-600 text-white text-center";
-                    tabAftersales.className = "px-3 py-2 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider transition text-slate-400 hover:text-white text-center";
-                    viewCollectionContainer.classList.remove('hidden');
-                    viewAftersalesContainer.classList.add('hidden');
-                } else {
-                    tabAftersales.className = "px-3 py-2 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider transition bg-emerald-600 text-white text-center";
-                    tabCollection.className = "px-3 py-2 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider transition text-slate-400 hover:text-white text-center";
-                    viewAftersalesContainer.classList.remove('hidden');
-                    viewCollectionContainer.classList.add('hidden');
-                    renderAftersalesCards();
+                const tabs = { collection: tabCollection, aftersales: tabAftersales, visits: document.getElementById('tab-visits'), map: document.getElementById('tab-map') };
+                const views = { collection: viewCollectionContainer, aftersales: viewAftersalesContainer, visits: document.getElementById('view-visits-container'), map: document.getElementById('view-map-container') };
+                for (const key of Object.keys(tabs)) {
+                    tabs[key].className = 'px-3 py-2 rounded-md text-xs font-bold ' + (key === tabName ? 'bg-blue-600 text-white' : 'text-slate-400');
+                    tabs[key].setAttribute('aria-pressed', String(key === tabName));
+                    views[key].classList.toggle('hidden', key !== tabName);
                 }
+                if (tabName === 'map') mapView?.open(); else mapView?.close();
+                if (tabName === 'aftersales' || tabName === 'visits') datasetWorkspace?.refresh();
                 saveState();
             }
-
             tabCollection.addEventListener('click', () => switchTab('collection'));
             tabAftersales.addEventListener('click', () => switchTab('aftersales'));
+            document.getElementById('tab-visits').addEventListener('click', () => switchTab('visits'));
+            document.getElementById('tab-map').addEventListener('click', () => switchTab('map'));
 
             // --- DATE HELPER FUNCTION ---
             function getDaysElapsedText(dateStr) {
@@ -923,6 +938,7 @@
                 renderEstablishments();
                 renderAftersalesCards();
                 document.body.classList.remove('dragging');
+                mapView?.refresh();
             }
 
             function renderCustomFields() {
@@ -3011,6 +3027,26 @@
             });
 
             await loadState();
+            workspaceStore = await window.createWorkspaceStore({ client: _supabase, deviceName: () => document.getElementById('device-name-input').value });
+            datasetWorkspace = window.createDatasetWorkspace({ store: workspaceStore, hosts: { aftersales: document.getElementById('dataset-aftersales'), visits: document.getElementById('view-visits-container') } });
+            mapView = window.createMayaMap({ host: document.getElementById('view-map-container'), store: workspaceStore,
+                getState: () => state,
+                openRecord: id => { switchTab('collection'); state.viewingEstablishmentId = id; renderViewModal(); },
+                visitedToday: id => {
+                    const settings = workspaceStore.state().mapSettings;
+                    const bindings = MayaMapModel.bindings(state.customFields, settings);
+                    if (!bindings.visit || bindings.visit.type !== 'date') throw new Error('Choose a valid LAST VISIT date field in Map settings first.');
+                    const record = state.establishments.find(row => String(row.id) === String(id));
+                    if (!record) throw new Error('Record no longer exists.');
+                    const today = MayaMapModel.today();
+                    if (record.details[bindings.visit.key] === today) return;
+                    record.details[bindings.visit.key] = today;
+                    saveState(); render();
+                }
+            });
+            document.getElementById('sync-now-btn').addEventListener('click', () => workspaceStore.sync());
+            workspaceStore.subscribe(() => deviceSync?.updateStatus());
+            deviceSync?.updateStatus();
         });
     </script>
 </body>
