@@ -104,3 +104,7 @@ Wrangler's local emulator applies the `_headers` rule correctly, but a direct re
 ## Later maps and dataset feature
 
 The feature branch expands the public build to 20 allowlisted files, including workspace modules, map modules, CSS and Leaflet assets. Its SQL upgrade is separate from the original hosting migration. See [maps-and-datasets.md](maps-and-datasets.md) for the required coordinated database approval and cutover.
+
+## Installable app update
+
+The PWA update ships 36 allowlisted files with a generated integrity-checked worker and local pinned runtime libraries/styles/fonts. The build command/output remain unchanged; no new SQL or auth callback is involved. See [installable-app.md](installable-app.md) for installation, style regeneration, cache/update behavior and rollback. Reverting to a worker-less frontend alone will not retire an installed service worker.

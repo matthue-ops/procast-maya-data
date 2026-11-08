@@ -450,3 +450,7 @@
     display: inline;
   }
 }
+#pwa-update-panel:not([hidden]) { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:8px; font-size:12px; }
+#pwa-update-status { flex-basis:100%; }
+/* Installation help must remain reachable on short phone screens. */
+#sync-options .sync-options-body { max-height:min(560px, max(160px, calc(100dvh - 220px))); overflow-y:auto; }

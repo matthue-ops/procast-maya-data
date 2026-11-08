@@ -78,3 +78,7 @@ No live Supabase writes or production deployment are part of these tests.
 The new Map / multiple Excel files / List to Visit feature adds an independent durable sync channel and a manual SQL cutover. Read [maps-and-datasets.md](docs/deployment/maps-and-datasets.md) before deploying. Migration 07 requires separate live-database approval; verification 08 is read-only and rollback 09 retains new tables. Main backups do not include the new files: also download the dataset recovery backup. The older Aftersales browser suite above targets the previous UI; use the new workspace suites for this version.
 
 For per-file saved field filters and the phone/map refinements, see [field-filters-navigation.md](docs/deployment/field-filters-navigation.md). Only migration 10 is new for installations already on 07. Run verification 11 after separately approving/running 10; rollback 12 is for a coordinated emergency return, not normal setup.
+
+## Installed app and offline reopening
+
+The installable PWA bundles the interface/libraries locally and caches only public app files. It leaves both IndexedDB queues and all SQL unchanged. See [installable-app.md](docs/deployment/installable-app.md) for installation, safe updates, offline limits and the coordinated worker rollback. Do not clear site data to refresh an installed app.

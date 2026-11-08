@@ -3,13 +3,8 @@ const assert = require("node:assert/strict"),
   fs = require("node:fs");
 const { chromium } = require("playwright"),
   DB = require("./workspace-db-helper.cjs");
-const XLSX = require("/tmp/maya-excel-tests/node_modules/xlsx-js-style"),
+const XLSX = require(process.env.MAYA_XLSX_MODULE || "/tmp/maya-excel-tests/node_modules/xlsx-js-style"),
   A = require("../aftersales-workbook.js");
-const css = fs.readFileSync("/tmp/maya-combined-test.css", "utf8"),
-  bundle = fs.readFileSync(
-    "/tmp/maya-excel-tests/node_modules/xlsx-js-style/dist/xlsx.bundle.js",
-    "utf8",
-  );
 (async () => {
   await DB.sql(
     fs.readFileSync(require.resolve("./workspace-fixture.sql"), "utf8"),
@@ -50,6 +45,7 @@ const css = fs.readFileSync("/tmp/maya-combined-test.css", "utf8"),
     const c = await browser.newContext({
       viewport: { width: 390, height: 844 },
       acceptDownloads: true,
+      serviceWorkers: "block",
     });
     await c.exposeBinding("testRpc", async (source, name, args) => {
       calls.push(name);
@@ -62,21 +58,6 @@ const css = fs.readFileSync("/tmp/maya-combined-test.css", "utf8"),
     });
     const networkHandler = (r) => {
       const u = r.request().url();
-      if (u.includes("supabase-js"))
-        return r.fulfill({
-          contentType: "application/javascript",
-          body: "window.supabase={createClient:()=>({rpc:(n,a)=>window.testRpc(n,a)})}",
-        });
-      if (u.includes("tailwind"))
-        return r.fulfill({
-          contentType: "application/javascript",
-          body: `document.head.insertAdjacentHTML('beforeend','<style>'+${JSON.stringify(css)}+'</style>')`,
-        });
-      if (u.includes("xlsx-js-style"))
-        return r.fulfill({
-          contentType: "application/javascript",
-          body: bundle,
-        });
       if (u.includes("tile.openstreetmap.org"))
         return r.fulfill({
           contentType: "image/png",
@@ -88,6 +69,7 @@ const css = fs.readFileSync("/tmp/maya-combined-test.css", "utf8"),
       return r.fulfill({ body: "" });
     };
     await c.route("https://**/*", networkHandler);
+    await c.route("**/vendor/supabase/supabase.js", r => r.fulfill({contentType:"application/javascript",body:"window.supabase={createClient:()=>({rpc:(n,a)=>window.testRpc(n,a)})}"}));
     const p = await c.newPage();
     p.on("pageerror", (e) => errors.push(e.message));
     await p.clock.install({ time: new Date("2026-11-06T02:00:00Z") });
@@ -354,6 +336,7 @@ const css = fs.readFileSync("/tmp/maya-combined-test.css", "utf8"),
       "PASS visited markers survive offline reload and sync automatically after reconnection",
     );
     const c2 = await browser.newContext({
+      serviceWorkers: "block",
       viewport: { width: 390, height: 844 },
     });
     await c2.exposeBinding("testRpc", async (source, name, args) => ({
@@ -361,6 +344,7 @@ const css = fs.readFileSync("/tmp/maya-combined-test.css", "utf8"),
       error: null,
     }));
     await c2.route("https://**/*", networkHandler);
+    await c2.route("**/vendor/supabase/supabase.js", r => r.fulfill({contentType:"application/javascript",body:"window.supabase={createClient:()=>({rpc:(n,a)=>window.testRpc(n,a)})}"}));
     const p2 = await c2.newPage();
     await p2.goto("http://127.0.0.1:8000/", { waitUntil: "domcontentloaded" });
     await p2.waitForFunction(
