@@ -211,6 +211,7 @@ window.createWorkspaceStore = async function ({ client, deviceName }) {
         ? status()
         : null,
     pending: () => record.outbox.length,
+    updateReady: () => ready && durable && saved === version && !busy && !record.review && !record.outbox.length,
   };
   try {
     let grant;

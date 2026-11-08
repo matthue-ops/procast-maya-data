@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "Procast",
+  "short_name": "Procast",
+  "description": "Personal field records, visit tracking and offline data entry.",
+  "lang": "en",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "./icons/procast-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/procast-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/procast-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

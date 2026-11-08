@@ -4,12 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PROJECT MAYA - PROCAST // BUSINESS TERMINAL</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Procast">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/procast-192.png">
+    <link rel="stylesheet" href="./vendor/tailwind/app.css">
     <!-- Supabase Client Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./vendor/supabase/supabase.js"></script>
     <!-- SheetJS Styling Library for Excel Export Styling -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="./vendor/xlsx/xlsx.bundle.js"></script>
+    <link href="./vendor/inter/inter.css" rel="stylesheet">
     
     <style>
         body { 
@@ -225,10 +231,17 @@
                         <button id="save-device-btn" type="button" disabled>Save on this device</button>
                         <button id="download-local-btn" type="button">Download Saved Records backup</button>
                         <button id="download-history-btn" type="button">Download preserved copies</button>
+                        <button id="pwa-install-btn" type="button">Install Procast</button>
+                        <p id="pwa-install-status" class="sync-caption" role="status">Install to open Procast in its own app window.</p>
                         <p class="sync-caption">Records save automatically after you finish the record form. Backups are recovery files.</p>
                     </div>
                 </details>
             </div>
+        </div>
+        <div id="pwa-update-panel" hidden>
+            <span>App update ready.</span>
+            <button id="pwa-update-btn" type="button">Update app</button>
+            <span id="pwa-update-status" role="status" class="sync-caption"></span>
         </div>
         <p id="sync-notice" class="sync-caption" role="status" hidden></p>
         <div class="sync-conflict-actions">
@@ -618,6 +631,7 @@
     <script src="./map-view.js"></script>
     <script src="./sync-changes.js"></script>
     <script src="./sync.js"></script>
+    <script src="./pwa.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             // --- SUPABASE CONFIGURATION ---
@@ -3047,6 +3061,8 @@
             document.getElementById('sync-now-btn').addEventListener('click', () => workspaceStore.sync());
             workspaceStore.subscribe(() => deviceSync?.updateStatus());
             deviceSync?.updateStatus();
+            window.MayaPwa?.setReadiness(() => deviceSync?.updateReady() && workspaceStore?.updateReady()
+                && !document.querySelector('dialog[open], .fixed[id$="modal"]:not(.hidden)'));
         });
     </script>
 </body>

@@ -222,7 +222,9 @@ window.createMayaSync = async function ({ client, getState, applyState, canRefre
             });
         },
         refresh() { return enqueue(sync); },
-        updateStatus: display
+        updateStatus: display,
+        updateReady: () => ready && durable && durableVersion === localVersion && !busy && !applying
+            && !fatal && !record.outbox.length && !record.review && !record.legacyPending && !hasDraft()
     };
     function download(value, name) {
         const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }));
