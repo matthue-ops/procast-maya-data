@@ -3,7 +3,10 @@ const assert = require("node:assert/strict"),
   fs = require("node:fs");
 const { chromium } = require("playwright"),
   DB = require("./workspace-db-helper.cjs");
-const XLSX = require(process.env.MAYA_XLSX_MODULE || "/tmp/maya-excel-tests/node_modules/xlsx-js-style"),
+const XLSX = require(
+    process.env.MAYA_XLSX_MODULE ||
+      "/tmp/maya-excel-tests/node_modules/xlsx-js-style",
+  ),
   A = require("../aftersales-workbook.js");
 (async () => {
   await DB.sql(
@@ -69,7 +72,12 @@ const XLSX = require(process.env.MAYA_XLSX_MODULE || "/tmp/maya-excel-tests/node
       return r.fulfill({ body: "" });
     };
     await c.route("https://**/*", networkHandler);
-    await c.route("**/vendor/supabase/supabase.js", r => r.fulfill({contentType:"application/javascript",body:"window.supabase={createClient:()=>({rpc:(n,a)=>window.testRpc(n,a)})}"}));
+    await c.route("**/vendor/supabase/supabase.js", (r) =>
+      r.fulfill({
+        contentType: "application/javascript",
+        body: "window.supabase={createClient:()=>({rpc:(n,a)=>window.testRpc(n,a)})}",
+      }),
+    );
     const p = await c.newPage();
     p.on("pageerror", (e) => errors.push(e.message));
     await p.clock.install({ time: new Date("2026-11-06T02:00:00Z") });
@@ -215,8 +223,14 @@ const XLSX = require(process.env.MAYA_XLSX_MODULE || "/tmp/maya-excel-tests/node
       .getByRole("combobox", { name: "Field filter", exact: true })
       .selectOption({ label: "Merchant only" });
     assert.equal(await p.locator(".workspace-read-field").count(), 1);
-    assert.notEqual(await p.getByRole("dialog").getAttribute("data-dirty"),"true");
-    await p.screenshot({path:"/tmp/workspace-fields-phone.png",fullPage:true});
+    assert.notEqual(
+      await p.getByRole("dialog").getAttribute("data-dirty"),
+      "true",
+    );
+    await p.screenshot({
+      path: "/tmp/workspace-fields-phone.png",
+      fullPage: true,
+    });
     await p
       .getByRole("button", { name: "Copy filtered fields", exact: true })
       .click();
@@ -344,7 +358,12 @@ const XLSX = require(process.env.MAYA_XLSX_MODULE || "/tmp/maya-excel-tests/node
       error: null,
     }));
     await c2.route("https://**/*", networkHandler);
-    await c2.route("**/vendor/supabase/supabase.js", r => r.fulfill({contentType:"application/javascript",body:"window.supabase={createClient:()=>({rpc:(n,a)=>window.testRpc(n,a)})}"}));
+    await c2.route("**/vendor/supabase/supabase.js", (r) =>
+      r.fulfill({
+        contentType: "application/javascript",
+        body: "window.supabase={createClient:()=>({rpc:(n,a)=>window.testRpc(n,a)})}",
+      }),
+    );
     const p2 = await c2.newPage();
     await p2.goto("http://127.0.0.1:8000/", { waitUntil: "domcontentloaded" });
     await p2.waitForFunction(
@@ -380,7 +399,19 @@ const XLSX = require(process.env.MAYA_XLSX_MODULE || "/tmp/maya-excel-tests/node
     );
     await p.click("#tab-map");
     await p.waitForSelector(".leaflet-container");
-    await p.waitForSelector(".map-record");
+    async function focusMerchant() {
+      const search = p.getByRole("searchbox", {
+        name: "Search map records",
+        exact: true,
+      });
+      await search.fill("Map Merchant");
+      await search.blur();
+      await p
+        .locator(".leaflet-overlay-pane path.leaflet-interactive")
+        .first()
+        .click();
+    }
+    await focusMerchant();
     assert.match(
       await p.locator(".leaflet-control-attribution").innerText(),
       /OpenStreetMap/,
@@ -391,15 +422,20 @@ const XLSX = require(process.env.MAYA_XLSX_MODULE || "/tmp/maya-excel-tests/node
         .evaluate((n) => getComputedStyle(n).color),
       "rgb(17, 17, 17)",
     );
-    const merchant = p
-      .locator(".map-record")
-      .filter({ hasText: "Map Merchant" });
+    const merchant = p.locator(".leaflet-popup-content");
     assert.equal(await merchant.count(), 1);
     assert.match(await merchant.innerText(), /43 days/);
     assert.match(
       await merchant.getByRole("link").getAttribute("href"),
       /google.com\/maps\/dir/,
     );
+    await p.locator(".leaflet-popup-close-button").click();
+    await p
+      .getByRole("searchbox", { name: "Search map records", exact: true })
+      .fill("");
+    await p
+      .getByRole("searchbox", { name: "Search map records", exact: true })
+      .blur();
     for (let zoom = 0; zoom < 6; zoom++) {
       const button = p.locator(".leaflet-control-zoom-in");
       if ((await button.getAttribute("class")).includes("leaflet-disabled"))
@@ -426,6 +462,7 @@ const XLSX = require(process.env.MAYA_XLSX_MODULE || "/tmp/maya-excel-tests/node
     console.log(
       "PASS maximum zoom separates nearby coordinates and groups only exactly coincident merchants",
     );
+    await focusMerchant();
     const before = await DB.rpc("maya_read_state");
     await merchant
       .getByRole("button", { name: "Visited today", exact: true })
@@ -442,6 +479,7 @@ const XLSX = require(process.env.MAYA_XLSX_MODULE || "/tmp/maya-excel-tests/node
       now = after.payload.establishments.find((r) => r.id === "m1");
     assert.equal(now.details.COORDINATES, old.details.COORDINATES);
     assert.equal(now.details["LAST VISIT"], "2026-11-06");
+    await p.getByRole("button", { name: "Map menu", exact: true }).click();
     await p.getByRole("button", { name: "Map settings", exact: true }).click();
     await p.getByRole("spinbutton", { name: "Green cutoff days" }).fill("15");
     await p.getByRole("button", { name: "Save settings", exact: true }).click();
@@ -474,9 +512,9 @@ const XLSX = require(process.env.MAYA_XLSX_MODULE || "/tmp/maya-excel-tests/node
       );
     }
     await p.click("#tab-map");
+    await focusMerchant();
     await p
-      .locator(".map-record")
-      .filter({ hasText: "Map Merchant" })
+      .locator(".leaflet-popup-content")
       .getByRole("button", { name: "Open record", exact: true })
       .click();
     await p.waitForSelector("#view-details-modal:not(.hidden)");
@@ -491,6 +529,7 @@ const XLSX = require(process.env.MAYA_XLSX_MODULE || "/tmp/maya-excel-tests/node
       "true",
     );
     await p.setViewportSize({ width: 390, height: 844 });
+    await p.locator(".maya-tabs").waitFor({ state: "visible" });
     const nav = await p.locator(".maya-tabs").boundingBox();
     assert.ok(nav.y + nav.height >= 843);
     assert.ok(nav.height < 90);

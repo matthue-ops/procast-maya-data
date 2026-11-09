@@ -115,7 +115,26 @@
       };
     });
   }
-  const api = { COLORS, coordinates, today, day, visit, bindings, points };
+  function formatCoordinates(lat, lng) {
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      Math.abs(lat) > 90 ||
+      Math.abs(lng) > 180
+    )
+      return null;
+    return [lat, lng].map((v) => String(Number(v.toFixed(7)))).join(", ");
+  }
+  const api = {
+    formatCoordinates,
+    COLORS,
+    coordinates,
+    today,
+    day,
+    visit,
+    bindings,
+    points,
+  };
   root.MayaMapModel = api;
   if (typeof module !== "undefined") module.exports = api;
 })(typeof window === "undefined" ? globalThis : window);

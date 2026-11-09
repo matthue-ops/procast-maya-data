@@ -450,7 +450,301 @@
     display: inline;
   }
 }
-#pwa-update-panel:not([hidden]) { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:8px; font-size:12px; }
-#pwa-update-status { flex-basis:100%; }
+#pwa-update-panel:not([hidden]) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+#pwa-update-status {
+  flex-basis: 100%;
+}
 /* Installation help must remain reachable on short phone screens. */
-#sync-options .sync-options-body { max-height:min(560px, max(160px, calc(100dvh - 220px))); overflow-y:auto; }
+#sync-options .sync-options-body {
+  max-height: min(560px, max(160px, calc(100dvh - 220px)));
+  overflow-y: auto;
+}
+/* Phone map workspace. The navigation stays in #app so modal/inert protection applies. */
+.map-panel {
+  position: relative;
+}
+.map-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+.map-toolbar > input {
+  flex: 1;
+  min-width: 140px;
+  font-size: 16px;
+  padding: 10px;
+  border: 1px solid #64748b;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  min-height: 44px;
+}
+.map-menu-items {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.map-menu-items select {
+  font-size: 16px;
+  padding: 10px;
+  min-height: 44px;
+  border: 1px solid #64748b;
+  border-radius: 8px;
+  background: #1e293b;
+  color: inherit;
+}
+.light-mode .map-menu-items select {
+  background: #fff;
+}
+.map-panel .map-menu-toggle {
+  display: none;
+}
+.map-status-overlay {
+  margin: 8px 0;
+  font-size: 12px;
+}
+.map-status-overlay p:empty {
+  display: none;
+}
+.map-save-status[data-state="offline"] {
+  color: #f59e0b;
+}
+.map-save-status[data-state="error"] {
+  color: #ef4444;
+  font-weight: bold;
+}
+.map-action-message {
+  font-weight: 600;
+}
+.map-move-panel:not([hidden]) {
+  padding: 12px;
+  margin-top: 10px;
+  border: 2px solid #2563eb;
+  border-radius: 10px;
+  background: #1e293b;
+  color: #fff;
+}
+.map-move-panel output,
+.map-move-panel small {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  margin: 5px 0;
+}
+.map-move-panel .workspace-actions {
+  margin-bottom: 0;
+}
+.map-move-marker span {
+  display: block;
+  width: 30px;
+  height: 30px;
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  background: #2563eb;
+  transform: rotate(-45deg);
+  box-shadow: 0 2px 8px #0008;
+}
+.map-move-marker:focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 4px;
+}
+.map-corrections-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.map-correction {
+  padding: 10px;
+  border: 1px solid #64748b;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+.map-correction small {
+  display: block;
+  font-size: 12px;
+}
+.light-mode .map-move-panel {
+  background: #fff;
+  color: #111;
+}
+@media (max-width: 640px) {
+  body.map-phone-active {
+    overflow: hidden;
+  }
+  .map-phone-active > .sync-panel,
+  .map-phone-active .app-header {
+    display: none;
+  }
+  .map-phone-active #app {
+    padding: 0;
+    max-width: none;
+  }
+  .map-phone-active #view-map-container {
+    position: fixed;
+    inset: 0 0 calc(62px + env(safe-area-inset-bottom));
+    margin: 0;
+  }
+  .map-phone-active .map-panel {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+  }
+  .map-phone-active .map-panel > h2,
+  .map-phone-active .map-legend,
+  .map-phone-active .map-message {
+    display: none;
+  }
+  .map-phone-active #maya-map-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    border-radius: 0;
+  }
+  .map-phone-active .map-toolbar {
+    position: absolute;
+    top: calc(10px + env(safe-area-inset-top));
+    left: 10px;
+    right: 10px;
+    z-index: 401;
+    margin: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .map-phone-active .map-toolbar > input {
+    min-width: 0;
+    background: rgba(15, 23, 42, 0.62);
+    color: white;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 2px 8px #0004;
+  }
+  .map-phone-active .map-toolbar > input:focus,
+  .map-phone-active .map-toolbar > input:not(:placeholder-shown) {
+    background: #0f172a;
+  }
+  .map-phone-active .map-menu {
+    position: relative;
+  }
+  .map-phone-active .map-menu-toggle {
+    display: inline-flex;
+    min-width: 44px;
+    justify-content: center;
+    background: #0f172ae6;
+    color: white;
+    font-size: 18px;
+  }
+  .map-phone-active .map-menu-items {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 52px;
+    width: min(275px, calc(100vw - 20px));
+    padding: 10px;
+    border: 1px solid #64748b;
+    border-radius: 10px;
+    background: #1e293b;
+    color: #fff;
+    box-shadow: 0 4px 14px #0006;
+    max-height: calc(100dvh - 180px);
+    overflow: auto;
+  }
+  .map-phone-active .map-menu-items.is-open {
+    display: grid;
+  }
+  .map-phone-active .map-menu-items > * {
+    width: 100%;
+  }
+  .map-phone-active .map-status-overlay {
+    position: absolute;
+    z-index: 400;
+    left: 10px;
+    top: calc(65px + env(safe-area-inset-top));
+    max-width: calc(100% - 75px);
+    margin: 0;
+    padding: 5px 8px;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.86);
+    color: #fff;
+    font-size: 11px;
+    pointer-events: none;
+  }
+  .map-phone-active .map-status-overlay p {
+    margin: 0;
+  }
+  .map-phone-active .map-move-panel:not([hidden]) {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 22px;
+    z-index: 402;
+    margin: 0;
+    max-height: 40%;
+    overflow: auto;
+  }
+  .map-phone-active .leaflet-popup-content-wrapper {
+    max-width: calc(100vw - 30px);
+  }
+  .map-phone-active .leaflet-popup-content {
+    max-width: calc(100vw - 75px);
+  }
+  .light-mode.map-phone-active .map-toolbar > input {
+    background: rgba(255, 255, 255, 0.68);
+    color: #111;
+  }
+  .light-mode.map-phone-active .map-toolbar > input:focus,
+  .light-mode.map-phone-active .map-toolbar > input:not(:placeholder-shown) {
+    background: #fff;
+  }
+  .light-mode.map-phone-active .map-menu-items {
+    background: #fff;
+    color: #111;
+  }
+}
+.map-availability {
+  display: none;
+}
+@media (max-width: 640px) {
+  .map-phone-active .map-availability:not(:empty) {
+    display: block;
+  }
+}
+@media (max-width: 640px) {
+  .map-phone-active .leaflet-top.leaflet-left {
+    top: calc(65px + env(safe-area-inset-top));
+    left: auto;
+    right: 10px;
+  }
+  .map-phone-active .leaflet-top.leaflet-left .leaflet-control {
+    margin: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .map-phone-active .map-toolbar > input::placeholder {
+    color: #f1f5f9;
+    opacity: 1;
+  }
+  .light-mode.map-phone-active .map-toolbar > input::placeholder {
+    color: #334155;
+  }
+}
+.map-panel .primary {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
