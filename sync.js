@@ -219,6 +219,7 @@ window.createMayaSync = async function ({ client, getState, applyState, canRefre
             return persist().then(stored => {
                 display();
                 if (stored) enqueue(sync);
+                return stored;
             });
         },
         refresh() { return enqueue(sync); },

@@ -82,3 +82,7 @@ For per-file saved field filters and the phone/map refinements, see [field-filte
 ## Installed app and offline reopening
 
 The installable PWA bundles the interface/libraries locally and caches only public app files. It leaves both IndexedDB queues and all SQL unchanged. See [installable-app.md](docs/deployment/installable-app.md) for installation, safe updates, offline limits and the coordinated worker rollback. Do not clear site data to refresh an installed app.
+
+## Phone map and location controls
+
+[mobile-map-location.md](docs/deployment/mobile-map-location.md) covers the full-window phone map, explicit merchant-coordinate previews/saves, and memory-only current GPS display. No SQL is required. Merchant coordinate edits use the existing durable leaf-change outbox; the GPS dot is never included in it. Unsaved pin previews block cloud adoption and PWA update reloads.

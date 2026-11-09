@@ -146,7 +146,11 @@ async function until(fn, label) {
         res.end('{"private":"never cache"}');
         return;
       }
-      if (url.pathname === "/index.html") { res.writeHead(308, {Location:"/"});res.end();return; }
+      if (url.pathname === "/index.html") {
+        res.writeHead(308, { Location: "/" });
+        res.end();
+        return;
+      }
       const name = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
       const full = path.resolve(directory, name);
       if (!full.startsWith(directory + path.sep)) throw Error("Invalid path");
@@ -253,8 +257,10 @@ async function until(fn, label) {
     };
     let page = await open();
     await page.waitForFunction(() => !!navigator.serviceWorker.controller);
-    await page.waitForFunction(() => document.getElementById("pwa-update-panel").hidden);
-    assert.equal(await page.locator("#pwa-update-panel").isVisible(),false);
+    await page.waitForFunction(
+      () => document.getElementById("pwa-update-panel").hidden,
+    );
+    assert.equal(await page.locator("#pwa-update-panel").isVisible(), false);
     await until(
       async () =>
         !(await idb(page, "maya-device-sync", "state")).outbox.length &&
@@ -309,7 +315,7 @@ async function until(fn, label) {
     });
     await page.locator("#sync-options").evaluate((n) => (n.open = true));
     await page.click("#pwa-install-btn");
-    await page.screenshot({path:"/tmp/procast-install-options.png"});
+    await page.screenshot({ path: "/tmp/procast-install-options.png" });
     assert.equal(await page.evaluate(() => window.installPromptShown), true);
     await page.locator("#sync-options").evaluate((n) => (n.open = false));
     await page.evaluate(() => fetch("/private-data"));
@@ -326,8 +332,11 @@ async function until(fn, label) {
     await page.click("#tab-map");
     await page.waitForSelector(".leaflet-container");
     await page
-      .locator(".map-record")
-      .filter({ hasText: "PWA Offline Merchant" })
+      .locator(".leaflet-overlay-pane path.leaflet-interactive")
+      .first()
+      .click();
+    await page
+      .locator(".leaflet-popup-content")
       .getByRole("button", { name: "Visited today", exact: true })
       .click();
     await page.click("#tab-aftersales");
@@ -361,8 +370,8 @@ async function until(fn, label) {
         .evaluate((n) => getComputedStyle(n).position),
       "fixed",
     );
-    await page.goto(origin+"/index.html",{waitUntil:"domcontentloaded"});
-    await page.waitForFunction(()=>!document.getElementById("app").inert);
+    await page.goto(origin + "/index.html", { waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => !document.getElementById("app").inert);
     await page.click("#tab-map");
     await page.waitForSelector(".leaflet-container");
     assert.match(
@@ -370,14 +379,14 @@ async function until(fn, label) {
       /unavailable|internet/,
     );
     assert.equal(await page.evaluate(() => typeof L.circleMarker), "function");
-    await page.screenshot({path:"/tmp/procast-offline-app.png"});
-    assert.ok(
-      (
-        await page
-          .locator(".map-record")
-          .filter({ hasText: "PWA Offline Merchant" })
-          .innerText()
-      ).includes("Visited today"),
+    await page.screenshot({ path: "/tmp/procast-offline-app.png" });
+    await page
+      .locator(".leaflet-overlay-pane path.leaflet-interactive")
+      .first()
+      .click();
+    assert.match(
+      await page.locator(".leaflet-popup-content").innerText(),
+      /Visited today/,
     );
     await assert.rejects(() => page.evaluate(() => fetch("/private-data")));
     console.log(
@@ -430,6 +439,7 @@ async function until(fn, label) {
     await page.waitForFunction(
       async () => !!(await navigator.serviceWorker.getRegistration()).waiting,
     );
+    await page.click("#tab-collection");
     await page.waitForSelector("#pwa-update-panel:not([hidden])");
     await page.click("#pwa-update-btn");
     await page.waitForFunction(() =>
@@ -463,6 +473,31 @@ async function until(fn, label) {
     );
     assert.equal(mainWrites, 1);
     assert.equal(fileWrites, 1);
+    await page.click("#tab-map");
+    await page
+      .locator(".leaflet-overlay-pane path.leaflet-interactive")
+      .first()
+      .click();
+    await page
+      .locator(".leaflet-popup-content")
+      .getByRole("button", { name: "Move location", exact: true })
+      .click();
+    await page.evaluate(() =>
+      document.getElementById("pwa-update-btn").click(),
+    );
+    await page.waitForFunction(
+      () => !document.getElementById("pwa-update-btn").disabled,
+    );
+    assert.equal(await page.locator(".map-move-panel").isVisible(), true);
+    assert.equal(
+      await page.evaluate(
+        () => document.querySelector("meta[name=pwa-test-release]")?.content,
+      ),
+      undefined,
+    );
+    await page
+      .getByRole("button", { name: "Cancel move", exact: true })
+      .click();
     await page.click("#tab-collection");
     await page.click("#new-record-btn");
     await page

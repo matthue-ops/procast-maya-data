@@ -117,3 +117,20 @@ assert.equal(sheet["!cols"][3].hidden, true);
 console.log(
   "PASS hidden visit markers and business-key presence survive the new workbook format",
 );
+
+assert.equal(M.formatCoordinates(0, 0), "0, 0");
+assert.equal(
+  M.formatCoordinates(9.6447561998793, 123.85308298023159),
+  "9.6447562, 123.853083",
+);
+for (const [lat, lng] of [
+  [91, 0],
+  [0, 181],
+  [NaN, 0],
+  [0, Infinity],
+  ["9", 123],
+])
+  assert.equal(M.formatCoordinates(lat, lng), null);
+console.log(
+  "PASS merchant coordinate formatting accepts zero, preserves valid ranges and rejects non-finite or non-numeric inputs",
+);

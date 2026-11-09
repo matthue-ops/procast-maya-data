@@ -269,6 +269,7 @@
             <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-between md:justify-end">
                 <!-- View Switcher Tabs -->
                 <nav aria-label="Main sections" class="maya-tabs bg-slate-900/50 p-1 rounded-lg border border-slate-700">
+                    <button id="tab-map" class="px-3 py-2 rounded-md text-xs font-bold"><span class="desktop-tab-label">Map</span><span class="phone-tab-label">◇ Map</span></button>
                     <button id="tab-collection" class="px-3 py-2 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider transition bg-blue-600 text-white text-center">
                         <span class="desktop-tab-label">Saved Records</span><span class="phone-tab-label">▤ Records</span>
                     </button>
@@ -276,7 +277,7 @@
                         <span class="desktop-tab-label">Aftersales</span><span class="phone-tab-label">✓ Aftersales</span>
                     </button>
                     <button id="tab-visits" class="px-3 py-2 rounded-md text-xs font-bold"><span class="desktop-tab-label">List to Visit</span><span class="phone-tab-label">⌖ Visits</span></button>
-                    <button id="tab-map" class="px-3 py-2 rounded-md text-xs font-bold"><span class="desktop-tab-label">Map</span><span class="phone-tab-label">◇ Map</span></button>
+
                 </nav>
 
                 <button
@@ -715,12 +716,12 @@
                     extraStatus: () => workspaceStore?.externalStatus(),
                     getState: () => state,
                     applyState: applySavedState,
-                    canRefresh: () => !document.querySelector('.fixed[id$="modal"]:not(.hidden)')
+                    canRefresh: () => !mapView?.hasDraft() && !document.querySelector('.fixed[id$="modal"]:not(.hidden)')
                         && !document.querySelector('dialog[open]')
                         && !document.activeElement?.matches('input:not(#search-input):not(#aftersales-search-input), textarea, select')
                         && ![...document.querySelectorAll('form[data-unsaved-draft="true"]')]
                             .some(form => form.getClientRects().length),
-                    hasDraft: () => [...document.querySelectorAll('form[data-unsaved-draft="true"]')]
+                    hasDraft: () => mapView?.hasDraft() || [...document.querySelectorAll('form[data-unsaved-draft="true"]')]
                         .some(form => form.getClientRects().length && [...form.elements].some(e => e.matches('input, textarea, select') && e.value))
                 });
             }
@@ -742,9 +743,23 @@
             const viewCollectionContainer = document.getElementById('view-collection-container');
             const viewAftersalesContainer = document.getElementById('view-aftersales-container');
 
+            const mapNav = document.querySelector('.maya-tabs');
+            const navHome = document.createComment('Desktop navigation position');
+            mapNav.before(navHome);
+            const phoneLayout = matchMedia('(max-width: 640px)');
+            function placeNavigation() {
+                if (phoneLayout.matches) document.getElementById('app').append(mapNav);
+                else navHome.after(mapNav);
+                mapView?.resize();
+            }
+            phoneLayout.addEventListener('change', placeNavigation);
+            placeNavigation();
+
             function switchTab(tabName) {
                 if (!['collection', 'aftersales', 'visits', 'map'].includes(tabName)) tabName = 'collection';
+                if (mapView && tabName !== 'map' && !mapView.canClose()) return;
                 state.activeTab = tabName;
+                document.body.classList.toggle('map-phone-active', tabName === 'map');
                 const tabs = { collection: tabCollection, aftersales: tabAftersales, visits: document.getElementById('tab-visits'), map: document.getElementById('tab-map') };
                 const views = { collection: viewCollectionContainer, aftersales: viewAftersalesContainer, visits: document.getElementById('view-visits-container'), map: document.getElementById('view-map-container') };
                 for (const key of Object.keys(tabs)) {
@@ -3046,6 +3061,19 @@
             mapView = window.createMayaMap({ host: document.getElementById('view-map-container'), store: workspaceStore,
                 getState: () => state,
                 openRecord: id => { state.viewingEstablishmentId = id; renderViewModal(); },
+                moveRecord: async ({ id, fieldKey, expectedValue, coordinates }) => {
+                    const bindings = MayaMapModel.bindings(state.customFields, workspaceStore.state().mapSettings);
+                    const record = state.establishments.find(row => row.id === id);
+                    if (!record || document.getElementById('app').inert) throw new Error('Record is no longer available for editing.');
+                    if (bindings.coordinate?.key !== fieldKey || bindings.coordinate.type !== 'text') throw new Error('Coordinate field changed. Cancel and reopen the pin.');
+                    if (!MayaMapModel.coordinates(coordinates)) throw new Error('Invalid coordinates.');
+                    if (record.details[fieldKey] !== expectedValue) throw new Error('These coordinates changed. Cancel and review the record before moving it again.');
+                    if (coordinates === expectedValue) return true;
+                    record.details[fieldKey] = coordinates;
+                    const durable = await saveState();
+                    render();
+                    return durable;
+                },
                 visitedToday: id => {
                     const settings = workspaceStore.state().mapSettings;
                     const bindings = MayaMapModel.bindings(state.customFields, settings);
@@ -3062,7 +3090,7 @@
             workspaceStore.subscribe(() => deviceSync?.updateStatus());
             deviceSync?.updateStatus();
             window.MayaPwa?.setReadiness(() => deviceSync?.updateReady() && workspaceStore?.updateReady()
-                && !document.querySelector('dialog[open], .fixed[id$="modal"]:not(.hidden)'));
+                && !mapView?.hasDraft() && !document.querySelector('dialog[open], .fixed[id$="modal"]:not(.hidden)'));
         });
     </script>
 </body>
