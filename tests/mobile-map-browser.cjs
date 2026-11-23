@@ -326,6 +326,33 @@ async function until(fn, label) {
       await p.locator("#tab-map").getAttribute("aria-pressed"),
       "true",
     );
+    const openMapSettings = async () => {
+      await menu();
+      await p.getByRole("button", { name: "Map settings", exact: true }).click();
+      return p.getByRole("dialog", { name: "Map settings", exact: true });
+    };
+    let mapSettings = await openMapSettings();
+    let grouping = mapSettings.getByRole("checkbox", { name: /Group map markers/ });
+    assert.equal(await grouping.isChecked(), true);
+    assert.ok(await p.locator(".map-cluster").count() > 0);
+    await grouping.uncheck();
+    assert.equal(await p.locator(".map-cluster").count(), 0);
+    assert.equal(await p.locator(".leaflet-overlay-pane path").count(), 3);
+    await mapSettings.getByRole("button", { name: "Cancel", exact: true }).click();
+    await p.reload();
+    await p.click("#tab-map");
+    await p.waitForFunction(
+      () => document.querySelectorAll(".leaflet-overlay-pane path").length === 3,
+    );
+    assert.equal(await p.locator(".map-cluster").count(), 0);
+    mapSettings = await openMapSettings();
+    grouping = mapSettings.getByRole("checkbox", { name: /Group map markers/ });
+    assert.equal(await grouping.isChecked(), false);
+    await grouping.check();
+    await mapSettings.getByRole("button", { name: "Cancel", exact: true }).click();
+    assert.ok(await p.locator(".map-cluster").count() > 0);
+    assert.equal(writes.length, 0);
+    console.log("PASS marker grouping defaults on, changes immediately, persists across reload and makes no cloud writes");
     for (let z = 0; z < 8; z++) {
       const button = p.locator(".leaflet-control-zoom-in");
       if ((await button.getAttribute("class")).includes("leaflet-disabled"))
