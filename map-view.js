@@ -7,6 +7,13 @@ window.createMayaMap = function ({
   moveRecord,
 }) {
   const M = window.MayaMapModel;
+  const groupingKey = "maya-map-group-markers";
+  let groupMarkers = true;
+  try {
+    groupMarkers = localStorage.getItem(groupingKey) !== "off";
+  } catch {
+    // Browser storage can be unavailable.
+  }
   let map,
     layer,
     tile,
@@ -255,6 +262,18 @@ window.createMayaMap = function ({
       actions(point),
     );
   }
+  function renderPin(point) {
+    L.circleMarker(point.position, {
+      radius: 9,
+      color: "#fff",
+      weight: 2,
+      fillColor: point.color,
+      fillOpacity: 1,
+      interactive: !move,
+    })
+      .addTo(layer)
+      .bindPopup(() => popup(point));
+  }
   function renderPins(points) {
     if (!map) return;
     layer.clearLayers();
@@ -262,6 +281,10 @@ window.createMayaMap = function ({
     for (const p of points.filter(
       (p) => p.position && p.record.id !== move?.id,
     )) {
+      if (!groupMarkers) {
+        renderPin(p);
+        continue;
+      }
       const pixel = map.project(p.position, map.getZoom()),
         key =
           map.getZoom() >= 17
@@ -271,49 +294,39 @@ window.createMayaMap = function ({
       groups.get(key).push(p);
     }
     for (const group of groups.values()) {
+      if (group.length === 1) {
+        renderPin(group[0]);
+        continue;
+      }
       const pos = [
         group.reduce((n, p) => n + p.position[0], 0) / group.length,
         group.reduce((n, p) => n + p.position[1], 0) / group.length,
       ];
-      if (group.length === 1) {
-        const p = group[0];
-        L.circleMarker(p.position, {
-          radius: 9,
-          color: "#fff",
-          weight: 2,
-          fillColor: p.color,
-          fillOpacity: 1,
-          interactive: !move,
-        })
-          .addTo(layer)
-          .bindPopup(() => popup(p));
-      } else {
-        const marker = L.marker(pos, {
-          interactive: !move,
-          title: `${group.length} locations`,
-          icon: L.divIcon({
-            className: "map-cluster",
-            html: String(group.length),
-            iconSize: [36, 36],
-          }),
-        }).addTo(layer);
-        marker.on("click", () => {
-          const bounds = L.latLngBounds(group.map((p) => p.position));
-          if (map.getZoom() >= 17)
-            marker
-              .bindPopup(
-                el(
-                  "div",
-                  { class: "map-overlap-list" },
-                  group.map((p) => popup(p)),
-                ),
-              )
-              .openPopup();
-          else if (bounds.getNorthEast().equals(bounds.getSouthWest()))
-            map.setView(pos, Math.min(18, map.getZoom() + 2));
-          else map.fitBounds(bounds, { padding: [35, 90], maxZoom: 18 });
-        });
-      }
+      const marker = L.marker(pos, {
+        interactive: !move,
+        title: `${group.length} locations`,
+        icon: L.divIcon({
+          className: "map-cluster",
+          html: String(group.length),
+          iconSize: [36, 36],
+        }),
+      }).addTo(layer);
+      marker.on("click", () => {
+        const bounds = L.latLngBounds(group.map((p) => p.position));
+        if (map.getZoom() >= 17)
+          marker
+            .bindPopup(
+              el(
+                "div",
+                { class: "map-overlap-list" },
+                group.map((p) => popup(p)),
+              ),
+            )
+            .openPopup();
+        else if (bounds.getNorthEast().equals(bounds.getSouthWest()))
+          map.setView(pos, Math.min(18, map.getZoom() + 2));
+        else map.fitBounds(bounds, { padding: [35, 90], maxZoom: 18 });
+      });
     }
   }
   function lockMoveControls(locked) {
@@ -782,10 +795,30 @@ window.createMayaMap = function ({
         ),
     );
     const message = el("p", { role: "status" });
+    const groupingMessage = el("p", { role: "status" });
+    const groupingToggle = el("input", {
+      type: "checkbox",
+      checked: groupMarkers,
+      onchange: (event) => {
+        groupMarkers = event.target.checked;
+        groupingMessage.textContent = "";
+        try {
+          localStorage.setItem(groupingKey, groupMarkers ? "on" : "off");
+        } catch {
+          groupingMessage.textContent =
+            "Grouping changed for this session. Browser storage is unavailable.";
+        }
+        pinsDirty = true;
+        refresh();
+      },
+    });
     dialog = el(
       "dialog",
       { class: "workspace-dialog", "aria-label": "Map settings" },
-      el("h3", {}, "Map settings (shared across devices)"),
+      el("h3", {}, "Map settings"),
+      el("label", {}, groupingToggle, " Group map markers (this browser)"),
+      groupingMessage,
+      el("h4", {}, "Shared across devices"),
       el("label", { class: "workspace-field" }, "Coordinate field", coords),
       el("label", { class: "workspace-field" }, "LAST VISIT date field", dates),
       el(
