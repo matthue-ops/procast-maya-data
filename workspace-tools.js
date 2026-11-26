@@ -42,11 +42,14 @@
         const d = state.datasets.find((x) => x.id === a.id);
         if (a.kind === "aftersales_setup" && state.aftersalesSetup) {
           const setup = clone(state.aftersalesSetup);
-          const applicable = a.changes.every(({ section, key, expected, missing, value }) => {
+          const latestWins = state.aftersalesSetupLastWriteWins;
+          const applicable = latestWins || a.changes.every(({ section, key, expected, missing, value }) => {
             const current = key === undefined ? setup[section] : setup[section][key];
             return same(current, value) || ((!missing || current === undefined) && same(current, expected));
           });
-          if (applicable) for (const { section, key, value } of a.changes) {
+          if (applicable) for (const { section, key, value, missing } of a.changes) {
+            const current = key === undefined ? setup[section] : setup[section][key];
+            if (latestWins && current !== undefined && (a.mode === "import" || (!a.mode && missing))) continue;
             if (key === undefined) setup[section] = clone(value);
             else setup[section][key] = clone(value);
           }
@@ -126,9 +129,9 @@
       }
       return plan;
     }
-    function queue(changes) {
+    function queue(changes, mode) {
       if (store.blocked()) throw Error("Resolve the held workspace batch before changing Aftersales setup.");
-      return store.add([{ kind: "aftersales_setup", changes }]);
+      return store.add([{ kind: "aftersales_setup", mode, changes }]);
     }
     return {
       get() {
@@ -140,7 +143,7 @@
       save(section, entry, value, expected) {
         if (store.state().aftersalesSetup) {
           const change = { section, key: entry, value, expected: expected ?? null, missing: expected === undefined };
-          return queue([change]);
+          return queue([change], "edit");
         }
         saveLocal({ [section]: entry === undefined ? value : { ...state[section], [entry]: value } });
         return Promise.resolve(true);
@@ -149,7 +152,7 @@
       async importLocal() {
         const { changes } = importPlan();
         for (let start = 0; start < changes.length; start += 1000) {
-          if (!(await queue(changes.slice(start, start + 1000)))) return false;
+          if (!(await queue(changes.slice(start, start + 1000), "import"))) return false;
         }
         return true;
       },
