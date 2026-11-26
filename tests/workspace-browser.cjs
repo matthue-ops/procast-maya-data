@@ -15,6 +15,7 @@ const XLSX = require(
   await DB.sql(
     `TRUNCATE public.maya_datasets,public.maya_workspace_receipts,public.maya_workspace_history; UPDATE public.maya_workspace_control SET revision=revision+1,map_settings='{"greenDays":30,"orangeDays":60,"coordinateKey":"COORDINATES","visitKey":"LAST VISIT"}';`,
   );
+  await DB.sql(`UPDATE public.maya_aftersales_setup SET settings='{"filters":{},"links":{}}';`);
   const extraLocations = [
     {
       id: "same-location",
@@ -270,6 +271,20 @@ const XLSX = require(
     assert.equal(await p.getByRole("combobox", { name: "Field filter", exact: true })
       .locator("option:checked").innerText(), "Merchant only");
     await p.getByRole("button", { name: "Close", exact: true }).click();
+    await host.getByRole("combobox", { name: "Aftersales file", exact: true }).selectOption(mergedFile.id);
+    await host.getByRole("button", { name: "Matching rules", exact: true }).click();
+    await p.getByRole("combobox", { name: "Excel column", exact: true }).selectOption("Name");
+    await p.getByRole("combobox", { name: "Saved Records field", exact: true }).selectOption("null");
+    await p.getByRole("button", { name: "Save matching rules", exact: true }).click();
+    await host.locator(".phone-record-name").first().click();
+    await p.getByRole("button", { name: "Change Saved Record link", exact: true }).click();
+    await p.getByRole("searchbox", { name: "Search Saved Records", exact: true }).fill("Nearby separate");
+    await p.getByRole("button", { name: "Nearby separate merchant", exact: true }).click();
+    await p.getByText("Linked to Nearby separate merchant", { exact: true }).waitFor();
+    await p.getByRole("button", { name: "Close", exact: true }).click();
+    await saved();
+    const shared = (await DB.rpc("maya_workspace_snapshot")).aftersalesSetup;
+    const filterId = Object.keys(shared.filters).find((id) => shared.filters[id].name === "Merchant only");
     console.log("PASS read-only fields, copy/edit, and a shared Aftersales filter across separate files");
     await p.click("#tab-visits");
     await visits.locator("input[type=file]").setInputFiles({
@@ -374,6 +389,10 @@ const XLSX = require(
       }),
     );
     const p2 = await c2.newPage();
+    await p2.addInitScript((id) => localStorage.setItem("maya-aftersales-preferences-v1", JSON.stringify({
+      filters: { [id]: { name: "Old conflicting filter", fields: ["Owner"] },
+        imported: { name: "Imported setup", fields: ["Name"] } },
+    })), filterId);
     await p2.goto("http://127.0.0.1:8000/", { waitUntil: "domcontentloaded" });
     await p2.waitForFunction(
       () =>
@@ -402,6 +421,32 @@ const XLSX = require(
         .inputValue(),
       "",
     );
+    await p2.getByRole("button", { name: "Close", exact: true }).click();
+    await p2.setViewportSize({ width: 1280, height: 844 });
+    await p2.click("#tab-aftersales");
+    const after2 = p2.locator("#dataset-aftersales");
+    await after2.getByRole("combobox", { name: "Aftersales file", exact: true }).selectOption(mergedFile.id);
+    await after2.getByRole("button", { name: "Matching rules", exact: true }).click();
+    assert.equal(await p2.getByRole("combobox", { name: "Excel column", exact: true }).inputValue(), "Name");
+    assert.equal(await p2.getByRole("combobox", { name: "Saved Records field", exact: true }).inputValue(), "null");
+    await p2.getByRole("button", { name: "Close", exact: true }).click();
+    await after2.getByRole("button", { name: "Open record", exact: true }).click();
+    await p2.getByText("Linked to Nearby separate merchant", { exact: true }).waitFor();
+    const presets2 = p2.getByRole("combobox", { name: "Field filter", exact: true });
+    assert.ok((await presets2.innerText()).includes("Merchant only"));
+    assert.ok(!(await presets2.innerText()).includes("Old conflicting filter"));
+    await p2.getByRole("button", { name: "Close", exact: true }).click();
+    await after2.getByText("File management & recovery", { exact: true }).click();
+    await after2.getByRole("button", { name: "Import this browser’s Aftersales setup", exact: true }).click();
+    await p2.getByText("1 new items · 1 conflicts · 0 links to unavailable rows.", { exact: true }).waitFor();
+    await p2.getByRole("button", { name: "Import missing items", exact: true }).click();
+    await p2.waitForFunction(() => document.querySelector("[data-workspace-status]")?.textContent === "All workspace changes saved to cloud");
+    assert.equal((await DB.rpc("maya_workspace_snapshot")).aftersalesSetup.filters.imported.name, "Imported setup");
+    assert.equal((await DB.rpc("maya_workspace_snapshot")).aftersalesSetup.filters[filterId].name, "Merchant only");
+    await p2.click("#tab-map");
+    await p2.getByRole("combobox", { name: "Map source", exact: true }).selectOption(mergedFile.id);
+    await p2.getByText(/1 mapped · 1 need matching/).waitFor();
+    console.log("PASS second device sees shared rules, manual links, filters and map pins; browser import preserves cloud conflicts");
     await c2.close();
     console.log(
       "PASS offline filter definition survives reload/reconnect and appears on another device with independent selection",
