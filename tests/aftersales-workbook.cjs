@@ -32,3 +32,15 @@ assert.throws(()=>A.parseSheet(XLSX,XLSX.utils.aoa_to_sheet([['Name',A.MARKER,A.
 const falsy=A.makeWorkbook(XLSX,['Zero','Boolean'],[{details:{Zero:0,Boolean:false},status:'None'}]);
 assert.equal(A.parseSheet(XLSX,falsy.Sheets[falsy.SheetNames[0]]).rows[0].details.Zero,'0');assert.equal(A.parseSheet(XLSX,falsy.Sheets[falsy.SheetNames[0]]).rows[0].details.Boolean,'false');
 console.log('PASS legacy/invalid markers, blank headers, duplicate rejection, and zero/false values');
+const locationOptions={preserveFields:true,aftersalesLocation:true};
+const linked={...records[1],linkedRecordId:'saved-merchant-b',coordinateSnapshot:'9.64, 123.85'};
+const locationBook=A.makeWorkbook(XLSX,headers,[linked,records[2]],locationOptions);
+const locationBuffer=XLSX.write(locationBook,{type:'buffer',bookType:'xlsx'});
+const locationRead=XLSX.read(locationBuffer,{type:'buffer',cellStyles:true});
+const locationSheet=locationRead.Sheets[locationRead.SheetNames[0]];
+assert.equal(locationSheet['!cols'][headers.length+2].hidden,true);
+assert.deepEqual(A.parseSheet(XLSX,locationSheet,locationOptions),{headers,rows:[
+ {details:linked.details,status:'Resolved',linkedRecordId:'saved-merchant-b',coordinateSnapshot:'9.64, 123.85'},
+ {details:records[2].details,status:'Unresolved'}
+]});
+console.log('PASS hidden links and coordinate snapshots round-trip with status and visible fields');

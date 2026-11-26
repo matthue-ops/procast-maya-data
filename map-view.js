@@ -2,6 +2,7 @@ window.createMayaMap = function ({
   host,
   store,
   getState,
+  preferences,
   openRecord,
   visitedToday,
   moveRecord,
@@ -23,6 +24,7 @@ window.createMayaMap = function ({
     active = false,
     query = "",
     filter = "all",
+    fileId = "",
     fit = false,
     tileFailed = false,
     libraryError = "",
@@ -37,7 +39,9 @@ window.createMayaMap = function ({
     firstFix = true,
     fixExpiry,
     cameraZooming = false,
-    pendingFix = null;
+    pendingFix = null,
+    lastFix = null;
+  const aftersalesColors = { None: "#2563eb", Resolved: "#16a34a", Unresolved: "#dc2626" };
   const el = (tag, attrs = {}, ...children) => {
     const n = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) {
@@ -127,6 +131,19 @@ window.createMayaMap = function ({
     },
     "My location",
   );
+  const recenter = el("button", {
+    type: "button",
+    title: "Recenter on my location",
+    "aria-label": "Recenter on my location",
+    disabled: true,
+    onclick: () => {
+      if (lastFix && !move) centerLocation(lastFix);
+    },
+  }, "◎");
+  const source = el("select", {
+    "aria-label": "Map source",
+    onchange: () => chooseSource(source.value),
+  });
   const menuToggle = el(
     "button",
     {
@@ -142,6 +159,7 @@ window.createMayaMap = function ({
   const menuItems = el(
     "div",
     { class: "map-menu-items", id: "map-menu-items" },
+    source,
     select,
     fitButton,
     settingsButton,
@@ -183,9 +201,40 @@ window.createMayaMap = function ({
   function settings() {
     return store.state().mapSettings;
   }
+  function aftersalesFiles() {
+    return store.state().datasets.filter((file) => file.kind === "aftersales");
+  }
+  function chooseSource(id) {
+    fileId = id;
+    select.disabled = !!move || !!fileId;
+    correctionButton.hidden = !!fileId;
+    fit = false;
+    map?.closePopup();
+    refresh(true);
+  }
   function matching() {
     const s = getState();
-    return M.points(s.establishments, s.customFields, settings()).filter(
+    const ds = fileId && aftersalesFiles().find((file) => file.id === fileId);
+    let points;
+    if (ds) {
+      const coordinate = M.bindings(s.customFields, settings()).coordinate;
+      const match = MayaWorkspaceTools.matchAftersales(ds, s, preferences.get());
+      points = ds.records.map((row) => {
+        const linked = match(row);
+        const position = M.coordinates(linked?.details?.[coordinate?.key]);
+        const status = MayaAftersales.normalizeStatus(row.status);
+        const name = linked?.name || row.details?.["Merchant Name"] || "Aftersales row";
+        return {
+          record: { id: row.id, name, details: row.details },
+          position, color: aftersalesColors[status],
+          label: status === "None" ? "Unmarked" : status,
+          aftersales: true, unmatched: !linked, coordinateError: !!linked && !position,
+        };
+      });
+    } else {
+      points = M.points(s.establishments, s.customFields, settings());
+    }
+    return points.filter(
       (p) =>
         (!query ||
           [p.record.name, ...Object.values(p.record.details || {})].some((v) =>
@@ -193,7 +242,7 @@ window.createMayaMap = function ({
               .toLowerCase()
               .includes(query.toLowerCase()),
           )) &&
-        (filter === "all" ||
+        (ds || filter === "all" ||
           (filter === "invalid"
             ? p.coordinateError || ["invalid", "future"].includes(p.category)
             : p.category === filter)),
@@ -213,12 +262,12 @@ window.createMayaMap = function ({
     return el(
       "div",
       { class: "workspace-actions" },
-      el(
+      point.aftersales ? null : el(
         "button",
         { disabled: !!move, onclick: () => openRecord(point.record.id) },
         "Open record",
       ),
-      el(
+      point.aftersales ? null : el(
         "button",
         {
           disabled: !!move || point.age === 0,
@@ -233,7 +282,7 @@ window.createMayaMap = function ({
         },
         point.age === 0 ? "Visited today ✓" : "Visited today",
       ),
-      point.position
+      point.position && !point.aftersales
         ? el(
             "button",
             { disabled: !!move, onclick: () => startMove(point.record.id) },
@@ -302,11 +351,15 @@ window.createMayaMap = function ({
         group.reduce((n, p) => n + p.position[0], 0) / group.length,
         group.reduce((n, p) => n + p.position[1], 0) / group.length,
       ];
+      const groupStyle = group[0].aftersales
+        ? " map-aftersales-" + (group.every((p) => p.label === group[0].label)
+          ? group[0].label.toLowerCase() : "mixed")
+        : "";
       const marker = L.marker(pos, {
         interactive: !move,
         title: `${group.length} locations`,
         icon: L.divIcon({
-          className: "map-cluster",
+          className: "map-cluster" + groupStyle,
           html: String(group.length),
           iconSize: [36, 36],
         }),
@@ -332,13 +385,15 @@ window.createMayaMap = function ({
   function lockMoveControls(locked) {
     for (const n of [
       search,
-      select,
+      source,
       fitButton,
       settingsButton,
       correctionButton,
       gpsButton,
     ])
       n.disabled = locked;
+    select.disabled = locked || !!fileId;
+    recenter.disabled = locked || !lastFix;
   }
   function updatePreview() {
     if (!move) return;
@@ -363,7 +418,6 @@ window.createMayaMap = function ({
         "Choose a text coordinate field with valid latitude, longitude in Map settings.";
       return;
     }
-    stopLocation();
     menuOpen(false);
     map.closePopup();
     actionMessage.textContent = "";
@@ -561,21 +615,29 @@ window.createMayaMap = function ({
     dialog.showModal();
     draw();
   }
-  function stopLocation(message = "") {
+  function stopLocation(message = "", pause = false) {
     clearTimeout(fixExpiry);
     geoToken++;
     if (watchId !== null) navigator.geolocation?.clearWatch(watchId);
     watchId = null;
-    locationLive = false;
-    pendingFix = null;
+    if (!pause) locationLive = false;
+    clearLocationFix(message);
+    gpsButton.textContent = locationLive ? "Turn off my location" : "My location";
+    gpsButton.setAttribute("aria-pressed", String(locationLive));
+  }
+  function clearLocationFix(message) {
+    pendingFix = lastFix = null;
+    recenter.disabled = true;
     gpsLayer?.clearLayers();
-    gpsButton.textContent = "My location";
-    gpsButton.setAttribute("aria-pressed", "false");
     gpsStatus.textContent = message;
+  }
+  function centerLocation({ lat, lng }) {
+    fit = true;
+    map.setView([lat, lng], Math.max(map.getZoom(), 16), { animate: false });
   }
   function drawCurrentLocation() {
     if (!pendingFix || !active || !locationLive || document.hidden) return;
-    if (firstFix && cameraZooming) {
+    if (firstFix && active && cameraZooming) {
       gpsStatus.textContent = "GPS found. Finishing map zoom…";
       return;
     }
@@ -583,14 +645,15 @@ window.createMayaMap = function ({
     pendingFix = null;
     if (token !== geoToken) return;
     if (Date.now() - timestamp > 30000) {
-      stopLocation("GPS reading expired. Tap My location to refresh.");
+      clearLocationFix("GPS reading expired. Waiting for a fresh reading…");
       return;
     }
-    if (firstFix) {
-      fit = true;
+    if (firstFix && !move) {
       firstFix = false;
-      map.setView([lat, lng], Math.max(map.getZoom(), 16), { animate: false });
+      centerLocation({ lat, lng });
     }
+    lastFix = { lat, lng };
+    recenter.disabled = !!move;
     gpsLayer.clearLayers();
     L.circle([lat, lng], {
       radius: accuracy,
@@ -610,23 +673,23 @@ window.createMayaMap = function ({
     }).addTo(gpsLayer);
     gpsStatus.textContent = `You are here · accuracy about ${Math.round(accuracy)} m`;
   }
-  function startLocation() {
-    if (!active || !map || document.hidden) return;
+  function startLocation(resume = false) {
+    if (!map || document.hidden || watchId !== null) return;
     if (!window.isSecureContext || !navigator.geolocation) {
       gpsStatus.textContent = "Location needs a current browser over HTTPS.";
       return;
     }
-    stopLocation();
+    stopLocation("", resume);
     locationLive = true;
-    firstFix = true;
-    gpsButton.textContent = "Stop my location";
+    if (!resume) firstFix = true;
+    gpsButton.textContent = "Turn off my location";
     gpsButton.setAttribute("aria-pressed", "true");
     gpsStatus.textContent = "Finding your current location…";
     const token = geoToken;
     try {
       watchId = navigator.geolocation.watchPosition(
         (position) => {
-          if (token !== geoToken || !active || document.hidden) return;
+          if (token !== geoToken || document.hidden) return;
           const { latitude: lat, longitude: lng, accuracy } = position.coords;
           if (
             !M.formatCoordinates(lat, lng) ||
@@ -634,16 +697,15 @@ window.createMayaMap = function ({
             accuracy < 0 ||
             Date.now() - position.timestamp > 30000
           ) {
-            gpsStatus.textContent = "Waiting for a fresh, valid GPS reading…";
-            pendingFix = null;
-            gpsLayer.clearLayers();
+            clearTimeout(fixExpiry);
+            clearLocationFix("Waiting for a fresh, valid GPS reading…");
             return;
           }
           clearTimeout(fixExpiry);
           fixExpiry = setTimeout(
             () =>
-              stopLocation("GPS reading expired. Tap My location to refresh."),
-            30000,
+              clearLocationFix("GPS reading expired. Waiting for a fresh reading…"),
+            Math.max(0, 30000 - (Date.now() - position.timestamp)),
           );
           pendingFix = {
             lat,
@@ -694,11 +756,33 @@ window.createMayaMap = function ({
     });
   syncStatus();
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) stopLocation();
+    if (!locationLive) return;
+    if (document.hidden) stopLocation("Location paused while Procast is hidden.", true);
+    else startLocation(true);
   });
-  window.addEventListener("pagehide", () => stopLocation());
+  window.addEventListener("pagehide", (event) => stopLocation("", event.persisted));
+  window.addEventListener("pageshow", () => {
+    if (locationLive) startLocation(true);
+  });
   function refresh(force = false) {
     if (!active) return;
+    const files = aftersalesFiles();
+    const file = files.find((item) => item.id === fileId);
+    if (fileId && !file) {
+      fileId = "";
+      select.disabled = !!move;
+      correctionButton.hidden = false;
+      fit = false;
+    }
+    const choices = JSON.stringify(files.map(({ id, name }) => [id, name]));
+    if (source.dataset.choices !== choices) {
+      source.replaceChildren(
+        el("option", { value: "" }, "Saved Records"),
+        ...files.map(({ id, name }) => el("option", { value: id }, "Aftersales: " + name)),
+      );
+      source.dataset.choices = choices;
+    }
+    source.value = fileId;
     const data = getState(),
       s = settings(),
       key = JSON.stringify([
@@ -707,6 +791,12 @@ window.createMayaMap = function ({
         s,
         query,
         filter,
+        fileId,
+        file?.records,
+        file?.headers,
+        file?.generation,
+        file ? preferences.get().links : null,
+        file ? preferences.get().pairs : null,
         M.today(),
       ]);
     const changed = key !== lastSignature;
@@ -715,30 +805,41 @@ window.createMayaMap = function ({
     const keys = M.bindings(data.customFields, s),
       points = matching(),
       bad = points.filter((p) => p.coordinateError).length;
+    const categories = file
+      ? [["None", "Unmarked"], ["Resolved", "Resolved"], ["Unresolved", "Unresolved"]]
+      : [
+          ["recent", `0–${s.greenDays} days`],
+          ["due", `${s.greenDays + 1}–${s.orangeDays} days`],
+          ["overdue", `Over ${s.orangeDays} days`],
+          ["unvisited", "No visit date"],
+          ["invalid", "Check date / coordinates"],
+        ];
+    const colors = file ? aftersalesColors : M.COLORS;
     legend.replaceChildren(
-      ...[
-        ["recent", `0–${s.greenDays} days`],
-        ["due", `${s.greenDays + 1}–${s.orangeDays} days`],
-        ["overdue", `Over ${s.orangeDays} days`],
-        ["unvisited", "No visit date"],
-        ["invalid", "Check date / coordinates"],
-      ].map(([c, text]) =>
-        el("span", {}, el("i", { style: `background:${M.COLORS[c]}` }), text),
+      ...categories.map(([category, text]) =>
+        el("span", {}, el("i", { style: `background:${colors[category]}` }), text),
       ),
     );
+    const bindingError = !keys.coordinate || (!file && !keys.visit);
+    const missingFields = file
+      ? "Choose a coordinate field in Map settings to see linked Aftersales pins."
+      : "Choose the coordinate and LAST VISIT fields in Map settings.";
+    const mapped = points.filter((p) => p.position).length;
     info.textContent = libraryError
       ? libraryError
-      : !keys.coordinate || !keys.visit
-        ? "Choose the coordinate and LAST VISIT fields in Map settings."
+      : bindingError
+        ? missingFields
         : tileFailed
-          ? "Map background unavailable. Pins and local coordinate edits still work."
-          : `${points.filter((p) => p.position).length} mapped · ${bad} missing/invalid coordinates. Visit ranges use Philippine dates. Map backgrounds need internet.`;
+          ? "Map background unavailable. Pins still work."
+          : file
+            ? `${mapped} mapped · ${points.filter((p) => p.unmatched).length} need matching · ${bad} missing coordinates`
+            : `${mapped} mapped · ${bad} missing/invalid coordinates. Visit ranges use Philippine dates. Map backgrounds need internet.`;
     availability.textContent =
       libraryError ||
-      (!keys.coordinate || !keys.visit
-        ? "Choose coordinate and LAST VISIT fields in Map settings."
+      (bindingError
+        ? missingFields
         : tileFailed
-          ? "Map background unavailable. Pins and local edits still work."
+          ? "Map background unavailable. Pins still work."
           : "");
     if (map && (changed || pinsDirty)) {
       renderPins(points);
@@ -816,7 +917,7 @@ window.createMayaMap = function ({
       "dialog",
       { class: "workspace-dialog", "aria-label": "Map settings" },
       el("h3", {}, "Map settings"),
-      el("label", {}, groupingToggle, " Group map markers (this browser)"),
+      el("label", { class: "workspace-check" }, groupingToggle, "Group map markers (this browser)"),
       groupingMessage,
       el("h4", {}, "Shared across devices"),
       el("label", { class: "workspace-field" }, "Coordinate field", coords),
@@ -911,6 +1012,13 @@ window.createMayaMap = function ({
           });
         libraryError = "";
         map = L.map(canvas, { center: [9.6, 123.85], zoom: 11, maxZoom: 19 });
+        const locationControl = L.control({ position: "bottomright" });
+        locationControl.onAdd = () => {
+          const container = el("div", { class: "leaflet-bar map-recenter" }, recenter);
+          L.DomEvent.disableClickPropagation(container);
+          return container;
+        };
+        locationControl.addTo(map);
         layer = L.layerGroup().addTo(map);
         previewLayer = L.layerGroup().addTo(map);
         gpsLayer = L.layerGroup().addTo(map);
@@ -946,6 +1054,7 @@ window.createMayaMap = function ({
     }
     map?.invalidateSize();
     refresh(true);
+    drawCurrentLocation();
   }
   store.subscribe(() => refresh());
   setInterval(() => refresh(), 60000);
@@ -953,7 +1062,6 @@ window.createMayaMap = function ({
     open,
     close() {
       active = false;
-      stopLocation();
       menuOpen(false);
     },
     canClose() {

@@ -82,7 +82,59 @@
       }
     return state;
   }
-  const api = { canonical, rowKey, merge, normalizeVisit, options, replay };
+  function createAftersalesPreferences(storage) {
+    const key = "maya-aftersales-preferences-v1";
+    let state = {};
+    try {
+      const saved = JSON.parse(storage().getItem(key));
+      if (saved && typeof saved === "object" && !Array.isArray(saved)) state = saved;
+    } catch {}
+    return {
+      get: () => state,
+      save(changes) {
+        const next = { ...state, ...changes };
+        storage().setItem(key, JSON.stringify(next));
+        state = next;
+      },
+    };
+  }
+  const rowLinkKey = (dataset, row) =>
+    JSON.stringify([dataset.id, dataset.generation, row.id]);
+  function matchAftersales(dataset, saved, preferences) {
+    const normalize = (value) => String(value ?? "").trim();
+    const records = new Map(saved.establishments.map((r) => [String(r.id), r]));
+    const pairs = (preferences.pairs ?? [{ excel: "MID", saved: "MID" }])
+      .filter(({ excel, saved: field }) =>
+        dataset.headers.includes(excel) &&
+        (field === null || saved.customFields.some((f) => f.key === field)),
+      );
+    const indexes = pairs.map(({ excel, saved: field }) => {
+      const index = new Map();
+      for (const record of records.values()) {
+        const value = normalize(field === null ? record.name : record.details?.[field]);
+        if (value && value !== "—") {
+          if (!index.has(value)) index.set(value, []);
+          index.get(value).push(record);
+        }
+      }
+      return { excel, index };
+    });
+    return (row) => {
+      const linked = preferences.links?.[rowLinkKey(dataset, row)] ?? row.linkedRecordId;
+      if (linked) return records.get(linked) || null;
+      let match = null;
+      for (const { excel, index } of indexes) {
+        const value = normalize(row.details?.[excel]);
+        const candidates = index.get(value);
+        if (!candidates) continue;
+        if (candidates.length !== 1 || (match && match !== candidates[0])) return null;
+        match = candidates[0];
+      }
+      return match;
+    };
+  }
+  const api = { canonical, rowKey, merge, normalizeVisit, options, replay,
+    createAftersalesPreferences, matchAftersales, rowLinkKey };
   root.MayaWorkspaceTools = api;
   if (typeof module !== "undefined") module.exports = api;
 })(typeof window === "undefined" ? globalThis : window);

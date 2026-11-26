@@ -134,3 +134,27 @@ for (const [lat, lng] of [
 console.log(
   "PASS merchant coordinate formatting accepts zero, preserves valid ranges and rejects non-finite or non-numeric inputs",
 );
+const linker = require("../workspace-tools.js");
+const source = { id: "f", generation: "0", headers: ["External ID", "Terminal"] };
+const saved = {
+  customFields: [{ key: "MID" }, { key: "Serial" }],
+  establishments: [
+    { id: "a", details: { MID: "001", Serial: "A" } },
+    { id: "b", details: { MID: "002", Serial: "B" } },
+    { id: "c", details: { MID: "002", Serial: "C" } },
+  ],
+};
+const rules = { pairs: [{ excel: "External ID", saved: "MID" }, { excel: "Terminal", saved: "Serial" }] };
+const resolve = linker.matchAftersales(source, saved, rules);
+assert.equal(resolve({ details: { "External ID": "001" } }).id, "a");
+assert.equal(resolve({ details: { "External ID": "002" } }), null);
+assert.equal(resolve({ details: { "External ID": "001", Terminal: "C" } }), null);
+assert.equal(resolve({ details: { "External ID": "001", Terminal: "A" } }).id, "a");
+assert.equal(resolve({ details: { "External ID": " ", Terminal: "—" } }), null);
+assert.equal(resolve({ linkedRecordId: "missing", details: { Terminal: "A" } }), null);
+const imported = { id: "row", linkedRecordId: "a", details: { Terminal: "A" } };
+const override = linker.matchAftersales(source, saved, {
+  ...rules, links: { [linker.rowLinkKey(source, imported)]: "c" },
+});
+assert.equal(override(imported).id, "c");
+console.log("PASS configurable exact matching, duplicate/conflict review and manual link precedence");
