@@ -81,15 +81,32 @@ window.createDatasetWorkspace = function ({ store, hosts, getState, preferences,
       notify(error.message);
     }
   }
-  function savePreferences(changes) {
+  async function savePreferences(section, key, value, expected) {
     try {
-      preferences.save(changes);
-    } catch {
-      notify("Browser storage is unavailable. Aftersales preferences were not saved.");
+      if (!(await preferences.save(section, key, value, expected))) {
+        notify("Could not save the setup on this device. Keep this tab open and export a workspace recovery backup.");
+        return false;
+      }
+    } catch (error) {
+      notify(error.message);
       return false;
     }
     onPreferenceChange();
     return true;
+  }
+  function importSetup() {
+    const plan = preferences.importPlan();
+    const info = el("p", {}, `${plan.changes.length} new items · ${plan.conflicts} conflicts · ${plan.unavailable} links to unavailable rows.`);
+    modal("Import browser Aftersales setup", el("div", {}, info,
+      el("p", {}, "Import adds missing items. The workspace keeps its version of conflicting items. You can review and reapply those changes in Matching rules, Manage filters, or the Aftersales row."),
+      el("button", { disabled: !plan.changes.length, onclick: async () => {
+        try {
+          if (await preferences.importLocal()) close();
+          else info.textContent = "Could not save the import on this device. Keep this tab open and export a workspace recovery backup.";
+        } catch (error) {
+          info.textContent = error.message;
+        }
+      } }, "Import missing items")));
   }
   function sharedFilters() {
     const filters = Object.fromEntries(store.state().datasets
@@ -108,6 +125,7 @@ window.createDatasetWorkspace = function ({ store, hosts, getState, preferences,
     return MayaMapModel.coordinates(record?.details?.[field]);
   }
   function matchSettings() {
+    const existing = preferences.get().pairs;
     const headers = [...new Set(store.state().datasets
       .filter((ds) => ds.kind === "aftersales").flatMap((ds) => ds.headers))];
     const body = el("div");
@@ -128,11 +146,11 @@ window.createDatasetWorkspace = function ({ store, hosts, getState, preferences,
         el("button", { onclick: () => row.remove() }, "Remove pair"));
       rows.append(row);
     }
-    (preferences.get().pairs ?? [{ excel: "MID", saved: "MID" }]).forEach(appendPair);
+    (existing ?? [{ excel: "MID", saved: "MID" }]).forEach(appendPair);
     const message = el("p", { role: "status" });
     body.append(el("p", {}, "One exact, nonblank match is enough when it identifies a single Saved Record."),
       rows, el("button", { onclick: () => appendPair() }, "Add field pair"),
-      message, el("button", { class: "primary", onclick: () => {
+      message, el("button", { class: "primary", onclick: async () => {
         const pairs = [...rows.children].map((row) => {
           const [excel, saved] = row.querySelectorAll("select");
           return { excel: excel.value, saved: saved.value ? JSON.parse(saved.value) : undefined };
@@ -141,11 +159,13 @@ window.createDatasetWorkspace = function ({ store, hosts, getState, preferences,
           message.textContent = "Choose both fields for each pair, or remove the incomplete pair.";
           return;
         }
-        if (savePreferences({ pairs })) close();
+        if (await savePreferences("pairs", undefined, pairs, existing)) close();
       } }, "Save matching rules"));
-    modal("Aftersales matching rules (this browser)", body);
+    modal(preferences.shared() ? "Shared Aftersales matching rules" : "Aftersales matching rules (this browser)", body);
   }
   function linkDialog(ds, row) {
+    const key = T.rowLinkKey(ds, row);
+    const existing = preferences.get().links?.[key];
     const results = el("div");
     const search = el("input", { type: "search", "aria-label": "Search Saved Records",
       placeholder: "Search by record name or field value", oninput: draw });
@@ -161,7 +181,7 @@ window.createDatasetWorkspace = function ({ store, hosts, getState, preferences,
       const identifyingFields = new Set(["MID", ...(preferences.get().pairs || [])
         .map((pair) => pair.saved).filter((field) => field !== null)]);
       results.replaceChildren(...matches.slice(0, 30).map((record) =>
-        el("div", { class: "workspace-actions" }, el("button", { onclick: () => {
+        el("div", { class: "workspace-actions" }, el("button", { onclick: async () => {
           const current = store.state().datasets.find((file) => file.id === ds.id);
           const currentRow = current?.records.find((item) => item.id === row.id);
           if (!currentRow || current.generation !== ds.generation) {
@@ -169,8 +189,7 @@ window.createDatasetWorkspace = function ({ store, hosts, getState, preferences,
             close();
             return;
           }
-          const key = T.rowLinkKey(ds, row);
-          if (savePreferences({ links: { ...preferences.get().links, [key]: String(record.id) } }))
+          if (await savePreferences("links", key, String(record.id), existing))
             recordDialog(current, currentRow);
         } }, record.name), el("small", {}, [...identifyingFields]
           .filter((field) => record.details?.[field])
@@ -442,9 +461,7 @@ window.createDatasetWorkspace = function ({ store, hosts, getState, preferences,
           onchange: (e) => {
             if (shared) {
               const id = e.target.value;
-              const changes = { selectedFilter: id };
-              if (filters[id]) changes.filters = { ...preferences.get().filters, [id]: filters[id] };
-              savePreferences(changes);
+              try { preferences.select(id); } catch (error) { notify(error.message); }
             } else chooseFilter(ds.id, e.target.value);
             draw();
           },
@@ -619,17 +636,18 @@ window.createDatasetWorkspace = function ({ store, hosts, getState, preferences,
     const body = el("div");
     function list() {
       if (dialog) dialog.dataset.dirty = "false";
+      const savedFilters = preferences.get().filters;
       body.replaceChildren(
         ...Object.entries(sharedFilters()).map(([id, filter]) => el("div", { class: "workspace-actions" },
-          el("span", {}, filter.name), el("button", { onclick: () => edit(id, filter) }, "Edit / rename"),
-          el("button", { onclick: () => {
-            if (confirm(`Delete filter ${filter.name} from this browser?`) &&
-              savePreferences({ filters: { ...preferences.get().filters, [id]: null } })) list();
+          el("span", {}, filter.name), el("button", { onclick: () => edit(id, filter, savedFilters?.[id]) }, "Edit / rename"),
+          el("button", { onclick: async () => {
+            if (confirm(`Delete filter ${filter.name}?`) &&
+              await savePreferences("filters", id, null, savedFilters?.[id])) list();
           } }, "Delete filter"))),
         el("button", { onclick: () => edit(crypto.randomUUID()) }, "Add filter"),
         el("button", { onclick: back }, "Back to record"));
     }
-    function edit(id, filter) {
+    function edit(id, filter, existing) {
       const name = el("input", { "aria-label": "Filter name", value: filter?.name || "", maxLength: 80 });
       const headers = new Set([...initial.headers, ...(filter?.fields || []),
         ...store.state().datasets.filter((ds) => ds.kind === "aftersales").flatMap((ds) => ds.headers)]);
@@ -637,19 +655,19 @@ window.createDatasetWorkspace = function ({ store, hosts, getState, preferences,
         el("input", { type: "checkbox", checked: filter?.fields.includes(header) || false })]);
       const notice = el("p", { role: "status" });
       body.replaceChildren(name, ...checks.map(([header, check]) => el("label", { class: "workspace-check" }, check, header)),
-        notice, el("button", { onclick: () => {
+        notice, el("button", { onclick: async () => {
           const fields = checks.filter(([, check]) => check.checked).map(([header]) => header);
           if (!name.value.trim() || !fields.length) {
             notice.textContent = "Enter a name and choose at least one column.";
             return;
           }
-          if (savePreferences({
-            filters: { ...preferences.get().filters, [id]: { name: name.value.trim(), fields } },
-            selectedFilter: id,
-          })) list();
+          if (await savePreferences("filters", id, { name: name.value.trim(), fields }, existing)) {
+            try { preferences.select(id); } catch (error) { notify(error.message); }
+            list();
+          }
         } }, "Save filter"), el("button", { onclick: list }, "Cancel"));
     }
-    modal("Manage shared Aftersales filters (this browser)", body);
+    modal(preferences.shared() ? "Manage shared Aftersales filters" : "Manage Aftersales filters (this browser)", body);
     list();
   }
   function manageFilters(initial, back) {
@@ -914,6 +932,7 @@ window.createDatasetWorkspace = function ({ store, hosts, getState, preferences,
     const state = store.state(),
       signature = JSON.stringify([
         state.datasets,
+      state.aftersalesSetup,
         store.ready(),
         store.blocked(),
       ]);
@@ -1134,6 +1153,8 @@ window.createDatasetWorkspace = function ({ store, hosts, getState, preferences,
             "div",
             { class: "workspace-actions" },
             el("button", { onclick: () => store.sync() }, "Sync files now"),
+            kind === "aftersales" && preferences.shared()
+              ? el("button", { onclick: importSetup }, "Import this browser’s Aftersales setup") : null,
             el(
               "button",
               {

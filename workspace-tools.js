@@ -40,7 +40,19 @@
     for (const batch of outbox)
       for (const a of batch.p_actions) {
         const d = state.datasets.find((x) => x.id === a.id);
-        if (a.kind === "map_settings") state.mapSettings = clone(a.settings);
+        if (a.kind === "aftersales_setup" && state.aftersalesSetup) {
+          const setup = clone(state.aftersalesSetup);
+          const applicable = a.changes.every(({ section, key, expected, missing, value }) => {
+            const current = key === undefined ? setup[section] : setup[section][key];
+            return same(current, value) || ((!missing || current === undefined) && same(current, expected));
+          });
+          if (applicable) for (const { section, key, value } of a.changes) {
+            if (key === undefined) setup[section] = clone(value);
+            else setup[section][key] = clone(value);
+          }
+          if (applicable) state.aftersalesSetup = setup;
+        }
+        else if (a.kind === "map_settings") state.mapSettings = clone(a.settings);
         else if (a.kind === "create_dataset")
           state.datasets.push({
             id: a.id,
@@ -82,19 +94,64 @@
       }
     return state;
   }
-  function createAftersalesPreferences(storage) {
+  const same = (a, b) => JSON.stringify(canonical(a ?? null)) === JSON.stringify(canonical(b ?? null));
+  function createAftersalesPreferences(storage, store) {
     const key = "maya-aftersales-preferences-v1";
     let state = {};
     try {
       const saved = JSON.parse(storage().getItem(key));
       if (saved && typeof saved === "object" && !Array.isArray(saved)) state = saved;
     } catch {}
+    function saveLocal(changes) {
+      const next = { ...state, ...changes };
+      storage().setItem(key, JSON.stringify(next));
+      state = next;
+    }
+    function importPlan() {
+      const { datasets, aftersalesSetup } = store.state();
+      const plan = { changes: [], conflicts: 0, unavailable: 0 };
+      if (!aftersalesSetup) return plan;
+      const links = new Set(datasets.filter((d) => d.kind === "aftersales")
+        .flatMap((d) => d.records.map((row) => rowLinkKey(d, row))));
+      function consider(section, key, value) {
+        const current = key === undefined ? aftersalesSetup[section] : aftersalesSetup[section][key];
+        if (current === undefined) plan.changes.push({ section, key, expected: null, missing: true, value });
+        else if (!same(current, value)) plan.conflicts++;
+      }
+      if (Array.isArray(state.pairs)) consider("pairs", undefined, state.pairs);
+      for (const [id, filter] of Object.entries(state.filters || {})) consider("filters", id, filter);
+      for (const [id, link] of Object.entries(state.links || {})) {
+        if (links.has(id)) consider("links", id, link);
+        else plan.unavailable++;
+      }
+      return plan;
+    }
+    function queue(changes) {
+      if (store.blocked()) throw Error("Resolve the held workspace batch before changing Aftersales setup.");
+      return store.add([{ kind: "aftersales_setup", changes }]);
+    }
     return {
-      get: () => state,
-      save(changes) {
-        const next = { ...state, ...changes };
-        storage().setItem(key, JSON.stringify(next));
-        state = next;
+      get() {
+        const shared = store.state().aftersalesSetup;
+        return { ...(shared ?? state), selectedFilter: state.selectedFilter };
+      },
+      shared: () => !!store.state().aftersalesSetup,
+      select: (id) => saveLocal({ selectedFilter: id }),
+      save(section, entry, value, expected) {
+        if (store.state().aftersalesSetup) {
+          const change = { section, key: entry, value, expected: expected ?? null, missing: expected === undefined };
+          return queue([change]);
+        }
+        saveLocal({ [section]: entry === undefined ? value : { ...state[section], [entry]: value } });
+        return Promise.resolve(true);
+      },
+      importPlan,
+      async importLocal() {
+        const { changes } = importPlan();
+        for (let start = 0; start < changes.length; start += 1000) {
+          if (!(await queue(changes.slice(start, start + 1000)))) return false;
+        }
+        return true;
       },
     };
   }

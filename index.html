@@ -3060,7 +3060,7 @@
 
             await loadState();
             workspaceStore = await window.createWorkspaceStore({ client: _supabase, deviceName: () => document.getElementById('device-name-input').value });
-            const aftersalesPreferences = MayaWorkspaceTools.createAftersalesPreferences(() => window.localStorage);
+            const aftersalesPreferences = MayaWorkspaceTools.createAftersalesPreferences(() => window.localStorage, workspaceStore);
             datasetWorkspace = window.createDatasetWorkspace({ store: workspaceStore,
                 getState: () => state, preferences: aftersalesPreferences,
                 onPreferenceChange: () => mapView?.refresh(), hosts: { aftersales: document.getElementById('dataset-aftersales'), visits: document.getElementById('view-visits-container') } });
