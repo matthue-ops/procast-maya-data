@@ -1,4 +1,4 @@
-window.createDatasetWorkspace = function ({ store, hosts }) {
+window.createDatasetWorkspace = function ({ store, hosts, getState, preferences, onPreferenceChange }) {
   const T = window.MayaWorkspaceTools,
     A = window.MayaAftersales,
     views = {
@@ -81,6 +81,109 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
       notify(error.message);
     }
   }
+  function savePreferences(changes) {
+    try {
+      preferences.save(changes);
+    } catch {
+      notify("Browser storage is unavailable. Aftersales preferences were not saved.");
+      return false;
+    }
+    onPreferenceChange();
+    return true;
+  }
+  function sharedFilters() {
+    const filters = Object.fromEntries(store.state().datasets
+      .filter((ds) => ds.kind === "aftersales")
+      .flatMap((ds) => Object.entries(ds.filters || {})));
+    return Object.fromEntries(Object.entries({ ...filters, ...preferences.get().filters })
+      .filter(([, filter]) => filter));
+  }
+  function matchRows(ds) {
+    return T.matchAftersales(ds, getState(), preferences.get());
+  }
+  function coordinateField() {
+    return MayaMapModel.bindings(getState().customFields, store.state().mapSettings).coordinate?.key ?? null;
+  }
+  function positionOf(record, field = coordinateField()) {
+    return MayaMapModel.coordinates(record?.details?.[field]);
+  }
+  function matchSettings() {
+    const headers = [...new Set(store.state().datasets
+      .filter((ds) => ds.kind === "aftersales").flatMap((ds) => ds.headers))];
+    const body = el("div");
+    const rows = el("div");
+    function appendPair(pair = {}) {
+      const excel = el("select", { "aria-label": "Excel column" },
+        el("option", { value: "" }, "Choose an Excel column"),
+        [...new Set([...headers, ...(pair.excel ? [pair.excel] : [])])].map((h) =>
+          el("option", { value: h, selected: pair.excel === h }, h)));
+      const fields = getState().customFields.map(({ key }) => key);
+      if (pair.saved != null && !fields.includes(pair.saved)) fields.push(pair.saved);
+      const saved = el("select", { "aria-label": "Saved Records field" },
+        el("option", { value: "" }, "Choose a Saved Records field"),
+        el("option", { value: "null", selected: pair.saved === null }, "Record name"),
+        fields.map((field) =>
+          el("option", { value: JSON.stringify(field), selected: pair.saved === field }, field)));
+      const row = el("div", { class: "workspace-actions" }, excel, saved,
+        el("button", { onclick: () => row.remove() }, "Remove pair"));
+      rows.append(row);
+    }
+    (preferences.get().pairs ?? [{ excel: "MID", saved: "MID" }]).forEach(appendPair);
+    const message = el("p", { role: "status" });
+    body.append(el("p", {}, "One exact, nonblank match is enough when it identifies a single Saved Record."),
+      rows, el("button", { onclick: () => appendPair() }, "Add field pair"),
+      message, el("button", { class: "primary", onclick: () => {
+        const pairs = [...rows.children].map((row) => {
+          const [excel, saved] = row.querySelectorAll("select");
+          return { excel: excel.value, saved: saved.value ? JSON.parse(saved.value) : undefined };
+        });
+        if (pairs.some(({ excel, saved }) => !excel || saved === undefined)) {
+          message.textContent = "Choose both fields for each pair, or remove the incomplete pair.";
+          return;
+        }
+        if (savePreferences({ pairs })) close();
+      } }, "Save matching rules"));
+    modal("Aftersales matching rules (this browser)", body);
+  }
+  function linkDialog(ds, row) {
+    const results = el("div");
+    const search = el("input", { type: "search", "aria-label": "Search Saved Records",
+      placeholder: "Search by record name or field value", oninput: draw });
+    function draw() {
+      const query = search.value.trim().toLowerCase();
+      if (!query) {
+        results.textContent = "Enter a name or field value.";
+        return;
+      }
+      const matches = getState().establishments.filter((record) =>
+        [record.name, ...Object.values(record.details || {})]
+          .some((value) => String(value ?? "").toLowerCase().includes(query)));
+      const identifyingFields = new Set(["MID", ...(preferences.get().pairs || [])
+        .map((pair) => pair.saved).filter((field) => field !== null)]);
+      results.replaceChildren(...matches.slice(0, 30).map((record) =>
+        el("div", { class: "workspace-actions" }, el("button", { onclick: () => {
+          const current = store.state().datasets.find((file) => file.id === ds.id);
+          const currentRow = current?.records.find((item) => item.id === row.id);
+          if (!currentRow || current.generation !== ds.generation) {
+            notify("This file changed. Reopen the Aftersales row.");
+            close();
+            return;
+          }
+          const key = T.rowLinkKey(ds, row);
+          if (savePreferences({ links: { ...preferences.get().links, [key]: String(record.id) } }))
+            recordDialog(current, currentRow);
+        } }, record.name), el("small", {}, [...identifyingFields]
+          .filter((field) => record.details?.[field])
+          .map((field) => `${field}: ${record.details[field]}`)
+          .concat(positionOf(record) ? "Has coordinates" : "Missing coordinates").join(" · ")))),
+        el("p", {}, matches.length > 30 ? "Showing 30 matches. Refine your search." :
+          matches.length ? "" : "No matching Saved Records."));
+    }
+    modal("Link to Saved Record", el("div", {}, search, results,
+      el("button", { onclick: () => recordDialog(ds, row) }, "Back to record")));
+    draw();
+    search.focus();
+  }
   function importFiles(kind, files) {
     Promise.all(
       [...files].map(async (file) => {
@@ -90,6 +193,7 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
           ...T.options(kind),
           blankValue: "",
           preserveFields: true,
+          aftersalesLocation: kind === "aftersales",
         });
         if (!parsed.rows.length) throw Error(`${file.name}: no data rows`);
         return {
@@ -97,8 +201,7 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
           headers: parsed.headers,
           records: parsed.rows.map((r) => ({
             id: crypto.randomUUID(),
-            details: r.details,
-            status: r.status,
+            ...r,
           })),
         };
       }),
@@ -322,8 +425,11 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
         );
         return;
       }
-      const filters = ds.filters || {};
-      const active = filters[selectedFilters[ds.id]];
+      const shared = ds.kind === "aftersales";
+      const filters = shared ? sharedFilters() : ds.filters || {};
+      const selected = shared ? preferences.get().selectedFilter ?? selectedFilters[ds.id] : selectedFilters[ds.id];
+      const active = filters[selected];
+      const linked = shared ? matchRows(ds)(row) : null;
       const fields = active
         ? ds.headers.filter((h) => active.fields.includes(h))
         : ds.headers;
@@ -334,7 +440,12 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
           "data-local-preference": "",
           disabled: !!editing,
           onchange: (e) => {
-            chooseFilter(ds.id, e.target.value);
+            if (shared) {
+              const id = e.target.value;
+              const changes = { selectedFilter: id };
+              if (filters[id]) changes.filters = { ...preferences.get().filters, [id]: filters[id] };
+              savePreferences(changes);
+            } else chooseFilter(ds.id, e.target.value);
             draw();
           },
         },
@@ -342,7 +453,7 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
         Object.entries(filters).map(([id, f]) =>
           el(
             "option",
-            { value: id, selected: selectedFilters[ds.id] === id },
+            { value: id, selected: selected === id },
             f.name,
           ),
         ),
@@ -357,13 +468,17 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
           el(
             "button",
             {
-              disabled: !!editing || !store.state().fieldFiltersEnabled,
-              onclick: () => manageFilters(ds, () => recordDialog(ds, row)),
+              disabled: !!editing || (!shared && !store.state().fieldFiltersEnabled),
+              onclick: () => (shared ? manageSharedFilters : manageFilters)(ds, () => recordDialog(ds, row)),
             },
             "Manage filters",
           ),
         ),
-        ...(!store.state().fieldFiltersEnabled
+        shared ? el("div", { class: "workspace-actions" },
+          el("span", {}, linked ? `Linked to ${linked.name}${positionOf(linked) ? "" : " · Missing coordinates"}` : "Needs matching"),
+          el("button", { disabled: !!editing, onclick: () => linkDialog(ds, row) },
+            linked ? "Change Saved Record link" : "Link to Saved Record")) : null,
+        ...(!shared && !store.state().fieldFiltersEnabled
           ? [
               el(
                 "p",
@@ -499,6 +614,43 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
     }
     modal(nameOf(initialRow, initial.headers), body);
     draw();
+  }
+  function manageSharedFilters(initial, back) {
+    const body = el("div");
+    function list() {
+      if (dialog) dialog.dataset.dirty = "false";
+      body.replaceChildren(
+        ...Object.entries(sharedFilters()).map(([id, filter]) => el("div", { class: "workspace-actions" },
+          el("span", {}, filter.name), el("button", { onclick: () => edit(id, filter) }, "Edit / rename"),
+          el("button", { onclick: () => {
+            if (confirm(`Delete filter ${filter.name} from this browser?`) &&
+              savePreferences({ filters: { ...preferences.get().filters, [id]: null } })) list();
+          } }, "Delete filter"))),
+        el("button", { onclick: () => edit(crypto.randomUUID()) }, "Add filter"),
+        el("button", { onclick: back }, "Back to record"));
+    }
+    function edit(id, filter) {
+      const name = el("input", { "aria-label": "Filter name", value: filter?.name || "", maxLength: 80 });
+      const headers = new Set([...initial.headers, ...(filter?.fields || []),
+        ...store.state().datasets.filter((ds) => ds.kind === "aftersales").flatMap((ds) => ds.headers)]);
+      const checks = [...headers].map((header) => [header,
+        el("input", { type: "checkbox", checked: filter?.fields.includes(header) || false })]);
+      const notice = el("p", { role: "status" });
+      body.replaceChildren(name, ...checks.map(([header, check]) => el("label", { class: "workspace-check" }, check, header)),
+        notice, el("button", { onclick: () => {
+          const fields = checks.filter(([, check]) => check.checked).map(([header]) => header);
+          if (!name.value.trim() || !fields.length) {
+            notice.textContent = "Enter a name and choose at least one column.";
+            return;
+          }
+          if (savePreferences({
+            filters: { ...preferences.get().filters, [id]: { name: name.value.trim(), fields } },
+            selectedFilter: id,
+          })) list();
+        } }, "Save filter"), el("button", { onclick: list }, "Cancel"));
+    }
+    modal("Manage shared Aftersales filters (this browser)", body);
+    list();
   }
   function manageFilters(initial, back) {
     const body = el("div"),
@@ -640,13 +792,14 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
         },
       ]);
   }
-  function visible(ds, view) {
+  function visible(ds, view, needsReview) {
     const query = view.query.trim().toLowerCase();
     return ds.records.filter(
       (r) =>
-        (ds.kind === "visits"
+        (view.mapReview && needsReview ? needsReview(r) :
+          (ds.kind === "visits"
           ? T.normalizeVisit(r.status)
-          : A.normalizeStatus(r.status)) === view.mode &&
+          : A.normalizeStatus(r.status)) === view.mode) &&
         (!query ||
           Object.values(r.details || {}).some((v) =>
             String(v ?? "")
@@ -655,7 +808,7 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
           )),
     );
   }
-  function card(ds, row) {
+  function card(ds, row, mapIssue) {
     const status =
       ds.kind === "visits"
         ? T.normalizeVisit(row.status)
@@ -719,6 +872,7 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
                 : "Unmarked"
               : status,
           ),
+          mapIssue ? el("small", {}, mapIssue) : null,
         ),
         el(
           "p",
@@ -833,7 +987,16 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
           render(true);
         },
       });
-      const records = ds ? visible(ds, view) : [];
+      const match = ds?.kind === "aftersales" ? matchRows(ds) : null;
+      const coordinate = match ? coordinateField() : null;
+      const issues = new Map();
+      if (match) for (const row of ds.records) {
+        const linked = match(row);
+        if (!linked) issues.set(row.id, "Needs matching");
+        else if (!positionOf(linked, coordinate)) issues.set(row.id, "Missing coordinates");
+      }
+      const needsReview = (row) => issues.has(row.id);
+      const records = ds ? visible(ds, view, needsReview) : [];
       const exportMenu = el(
         "details",
         { class: "workspace-export" },
@@ -849,10 +1012,19 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
                   !ds || !(scope === "all" ? ds.records : records).length,
                 onclick: () => {
                   const selected =
-                    scope === "all" ? ds.records : visible(ds, view);
-                  const book = A.makeWorkbook(XLSX, ds.headers, selected, {
+                    scope === "all" ? ds.records : records;
+                  const matchLatest = match ? matchRows(ds) : null;
+                  const currentField = matchLatest ? coordinateField() : null;
+                  const rows = matchLatest ? selected.map((row) => {
+                    const linked = matchLatest(row);
+                    if (!linked) return row;
+                    return { ...row, linkedRecordId: String(linked.id),
+                      coordinateSnapshot: positionOf(linked, currentField)?.join(", ") || "" };
+                  }) : selected;
+                  const book = A.makeWorkbook(XLSX, ds.headers, rows, {
                     ...T.options(kind),
                     preserveFields: true,
+                    aftersalesLocation: kind === "aftersales",
                   });
                   XLSX.writeFile(book, A.filename(ds.filename));
                   exportMenu.open = false;
@@ -929,6 +1101,12 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
           { class: "workspace-toolbar" },
           mode,
           search,
+          match ? el("button", { onclick: matchSettings }, "Matching rules") : null,
+          match ? el("button", { class: view.mapReview ? "primary" : "",
+            "aria-pressed": String(!!view.mapReview), onclick: () => {
+            view.mapReview = !view.mapReview;
+            render(true);
+          } }, `Map review (${issues.size})`) : null,
           el(
             "small",
             {},
@@ -939,7 +1117,7 @@ window.createDatasetWorkspace = function ({ store, hosts }) {
           "div",
           { class: "workspace-records" },
           records.length
-            ? records.map((r) => card(ds, r))
+            ? records.map((r) => card(ds, r, issues.get(r.id)))
             : el(
                 "p",
                 {},

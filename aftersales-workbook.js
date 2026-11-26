@@ -1,6 +1,7 @@
 /* Aftersales Excel interchange. Metadata is not a visible business column. */
 (function (root) {
     const MARKER = '__PROJECT_MAYA_MARKER_V1__';
+    const LOCATION = '__PROJECT_MAYA_LOCATION_V1__';
     const FALLBACK = 'AFTERSALES_RECHECKING_HIGHLIGHTED.xlsx';
     function normalizeStatus(value) {
         const status = String(value ?? '').trim().toLowerCase();
@@ -25,10 +26,14 @@
         const values = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', blankrows: false, skipHidden: false });
         if (!values.length) throw new Error('Excel file is empty.');
         const columns = [], seen = new Set();
-        let markerIndex = -1, fieldsIndex = -1;
+        let markerIndex = -1, fieldsIndex = -1, locationIndex = -1;
         values[0].forEach((value, index) => {
             const name = String(value ?? '').trim();
             if (!name) return;
+            if (name === LOCATION) {
+                if (locationIndex !== -1) throw new Error('Duplicate hidden location metadata.');
+                locationIndex = index; return;
+            }
             if (options.preserveFields && name === '__PROJECT_MAYA_FIELDS_V1__') {
                 if (fieldsIndex !== -1) throw new Error('Duplicate hidden field metadata.');
                 fieldsIndex = index; return;
@@ -50,21 +55,36 @@
                 if (!Array.isArray(keys) || keys.some(key => typeof key !== 'string' || !columns.some(c => c.name === key))) throw new Error('Invalid hidden field metadata.');
                 for (const key of Object.keys(details)) if (!keys.includes(key)) delete details[key];
             }
-            return { details, status: markerIndex < 0 ? 'None' : normalize(row[markerIndex]) };
+            const result = { details, status: markerIndex < 0 ? 'None' : normalize(row[markerIndex]) };
+            if (options.aftersalesLocation && locationIndex >= 0 && row[locationIndex]) {
+                let location;
+                try { location = JSON.parse(String(row[locationIndex])); } catch { throw new Error('Invalid hidden location metadata.'); }
+                if (typeof location?.id !== 'string' || !location.id || location.id.length > 512 ||
+                    typeof location.coordinates !== 'string' || location.coordinates.length > 128)
+                    throw new Error('Invalid hidden location metadata.');
+                result.linkedRecordId = location.id;
+                result.coordinateSnapshot = location.coordinates;
+            }
+            return result;
         });
         return { headers: columns.map(column => column.name), rows };
     }
     function makeWorkbook(XLSX, headers, records, options = {}) {
         const markerHeader = options.markerHeader || MARKER, normalize = options.normalizeStatus || normalizeStatus;
-        const visible = headers.filter(header => header !== markerHeader);
+        const visible = headers.filter(header => header !== markerHeader && header !== LOCATION);
         if (!visible.length || !records.length) throw new Error('No aftersales records to export.');
-        const rows = [[...visible, markerHeader, ...(options.preserveFields ? ['__PROJECT_MAYA_FIELDS_V1__'] : [])], ...records.map(record => [
-            ...visible.map(header => record.details?.[header] ?? '—'), normalize(record.status), ...(options.preserveFields ? [JSON.stringify(Object.keys(record.details || {}))] : [])
+        const rows = [[...visible, markerHeader, ...(options.preserveFields ? ['__PROJECT_MAYA_FIELDS_V1__'] : []), ...(options.aftersalesLocation ? [LOCATION] : [])], ...records.map(record => [
+            ...visible.map(header => record.details?.[header] ?? '—'), normalize(record.status),
+            ...(options.preserveFields ? [JSON.stringify(visible.filter(header => Object.hasOwn(record.details || {}, header)))] : []),
+            ...(options.aftersalesLocation ? [record.linkedRecordId ? JSON.stringify({
+                id: record.linkedRecordId, coordinates: record.coordinateSnapshot || ''
+            }) : ''] : [])
         ])];
         const worksheet = XLSX.utils.aoa_to_sheet(rows);
         worksheet['!cols'] = visible.map(() => ({}));
         worksheet['!cols'].push({ hidden: true });
         if (options.preserveFields) worksheet['!cols'].push({ hidden: true });
+        if (options.aftersalesLocation) worksheet['!cols'].push({ hidden: true });
         records.forEach((record, index) => {
             const status = normalizeStatus(record.status);
             const color = status === 'Resolved' ? 'D1FAE5' : status === 'Unresolved' ? 'FEE2E2' : null;

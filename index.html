@@ -1113,18 +1113,21 @@
             let recordDisplayLimit = 30;
             function renderEstablishments() {
                 const lowerCaseSearchTerm = state.searchTerm.toLowerCase().trim();
-                let filteredList = [...state.establishments];
-
-                if (lowerCaseSearchTerm) {
-                    filteredList = state.establishments.filter(e =>
-                        (e.name || '').toLowerCase().includes(lowerCaseSearchTerm) ||
-                        Object.values(e.details || {}).some(detail =>
-                            String(detail).toLowerCase().includes(lowerCaseSearchTerm)
-                        )
-                    );
-                }
-
-                filteredList.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+                const compareNames = (a, b) => (a.name || '').localeCompare(b.name || '');
+                const rank = record => {
+                    const name = (record.name || '').trim().toLowerCase();
+                    if (name === lowerCaseSearchTerm) return 0;
+                    if (name.includes(lowerCaseSearchTerm)) return 1;
+                    if (Object.values(record.details || {}).some(value =>
+                        String(value ?? '').toLowerCase().includes(lowerCaseSearchTerm))) return 2;
+                    return -1;
+                };
+                const filteredList = lowerCaseSearchTerm
+                    ? state.establishments.map(record => ({ record, rank: rank(record) }))
+                        .filter(result => result.rank >= 0)
+                        .sort((a, b) => a.rank - b.rank || compareNames(a.record, b.record))
+                        .map(result => result.record)
+                    : [...state.establishments].sort(compareNames);
                 
                 establishmentsHeader.textContent = `Saved Records (${state.establishments.length})`;
 
@@ -3057,9 +3060,12 @@
 
             await loadState();
             workspaceStore = await window.createWorkspaceStore({ client: _supabase, deviceName: () => document.getElementById('device-name-input').value });
-            datasetWorkspace = window.createDatasetWorkspace({ store: workspaceStore, hosts: { aftersales: document.getElementById('dataset-aftersales'), visits: document.getElementById('view-visits-container') } });
+            const aftersalesPreferences = MayaWorkspaceTools.createAftersalesPreferences(() => window.localStorage);
+            datasetWorkspace = window.createDatasetWorkspace({ store: workspaceStore,
+                getState: () => state, preferences: aftersalesPreferences,
+                onPreferenceChange: () => mapView?.refresh(), hosts: { aftersales: document.getElementById('dataset-aftersales'), visits: document.getElementById('view-visits-container') } });
             mapView = window.createMayaMap({ host: document.getElementById('view-map-container'), store: workspaceStore,
-                getState: () => state,
+                getState: () => state, preferences: aftersalesPreferences,
                 openRecord: id => { state.viewingEstablishmentId = id; renderViewModal(); },
                 moveRecord: async ({ id, fieldKey, expectedValue, coordinates }) => {
                     const bindings = MayaMapModel.bindings(state.customFields, workspaceStore.state().mapSettings);

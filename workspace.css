@@ -494,6 +494,9 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+.map-menu-items [hidden] {
+  display: none;
+}
 .map-menu-items select {
   font-size: 16px;
   padding: 10px;
@@ -502,6 +505,33 @@
   border-radius: 8px;
   background: #1e293b;
   color: inherit;
+}
+.map-menu-items select[aria-label="Map source"] {
+  max-width: min(240px, 100%);
+}
+.map-panel .map-recenter button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: #fff;
+  color: #1e293b;
+  font-size: 24px;
+}
+.map-panel .map-recenter button:disabled {
+  color: #64748b;
+}
+#maya-map-canvas .map-aftersales-resolved {
+  background: #16a34a;
+}
+#maya-map-canvas .map-aftersales-unresolved {
+  background: #dc2626;
+}
+#maya-map-canvas .map-aftersales-mixed {
+  background: #475569;
 }
 .light-mode .map-menu-items select {
   background: #fff;

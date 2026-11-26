@@ -102,10 +102,11 @@ const XLSX = require(
       XLSX,
       ["Name", "Owner"],
       [
-        { details: { Name: "Alpha", Owner: "Tester" }, status: "None" },
+        { details: { Name: "Alpha", Owner: "Tester" }, status: "None",
+          linkedRecordId: "m1", coordinateSnapshot: "0, 0" },
         { details: { Name: "Beta", Owner: "Other" }, status: "Resolved" },
       ],
-      { preserveFields: true },
+      { preserveFields: true, aftersalesLocation: true },
     );
     const buffer = XLSX.write(book, { type: "buffer", bookType: "xlsx" });
     await host.locator("input[type=file]").setInputFiles([
@@ -173,11 +174,15 @@ const XLSX = require(
       type: "buffer",
       cellStyles: true,
     });
-    assert.equal(
-      A.parseSheet(XLSX, wb.Sheets[wb.SheetNames[0]], { preserveFields: true })
-        .rows.length,
-      2,
-    );
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const exported = A.parseSheet(XLSX, sheet, {
+      preserveFields: true, aftersalesLocation: true,
+    }).rows;
+    assert.equal(exported.length, 2);
+    assert.equal(exported.find((row) => row.details.Name === "Alpha").linkedRecordId, "m1");
+    assert.equal(exported.find((row) => row.details.Name === "Alpha").coordinateSnapshot,
+      "9.6447561998793, 123.85308298023159");
+    assert.equal(sheet["!cols"].at(-1).hidden, true);
     console.log(
       "PASS browser multiple uploads, independent markers, search/status, newer-file merge priority, and real Excel download",
     );
@@ -246,7 +251,7 @@ const XLSX = require(
     const mergedFile = workspace.datasets.find(
       (d) => d.filename === "Merged Aftersales.xlsx",
     );
-    assert.equal(Object.values(mergedFile.filters)[0].name, "Merchant only");
+    assert.deepEqual(mergedFile.filters, {});
     assert.equal(
       mergedFile.records.find((r) => r.details.Name === "Alpha updated").details
         .Owner,
@@ -259,9 +264,13 @@ const XLSX = require(
       ).length,
       0,
     );
-    console.log(
-      "PASS read-only fields, tap-to-copy, explicit pencil editing/cancel, filtered copying and per-file saved filters",
-    );
+    await host.getByRole("combobox", { name: "Aftersales file", exact: true })
+      .selectOption(workspace.datasets.find((d) => d.filename === "Browser New.xlsx").id);
+    await host.locator(".phone-record-name").first().click();
+    assert.equal(await p.getByRole("combobox", { name: "Field filter", exact: true })
+      .locator("option:checked").innerText(), "Merchant only");
+    await p.getByRole("button", { name: "Close", exact: true }).click();
+    console.log("PASS read-only fields, copy/edit, and a shared Aftersales filter across separate files");
     await p.click("#tab-visits");
     await visits.locator("input[type=file]").setInputFiles({
       name: "Visits.xlsx",
@@ -462,6 +471,7 @@ const XLSX = require(
     console.log(
       "PASS maximum zoom separates nearby coordinates and groups only exactly coincident merchants",
     );
+    await p.locator(".leaflet-popup-content").waitFor({ state: "detached" });
     await focusMerchant();
     const before = await DB.rpc("maya_read_state");
     await merchant

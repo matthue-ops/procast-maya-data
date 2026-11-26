@@ -41,6 +41,7 @@ async function until(fn, label) {
       { key: "COORDINATES", type: "text" },
       { key: "LAST VISIT", type: "date" },
       { key: "NOTES", type: "text" },
+      { key: "MID", type: "text" },
     ],
     establishments: [
       {
@@ -50,6 +51,7 @@ async function until(fn, label) {
           COORDINATES: original,
           "LAST VISIT": "2026-09-24",
           NOTES: "Keep notes",
+          MID: "101",
         },
       },
       {
@@ -59,6 +61,7 @@ async function until(fn, label) {
           COORDINATES: original,
           "LAST VISIT": "2026-09-25",
           NOTES: "Other merchant",
+          MID: "Nearby field match",
         },
       },
       {
@@ -93,7 +96,18 @@ async function until(fn, label) {
     protocol: 3,
     revision: "0",
     fieldFiltersEnabled: true,
-    datasets: [],
+    datasets: [
+      { id: "after-a", kind: "aftersales", name: "Week A.xlsx", generation: "0", uploadOrder: "1",
+        headers: ["Location reference", "Name", "Notes"], records: [
+          { id: "after-1", details: { "Location reference": "101", Name: "Merchant A" }, status: "Resolved" },
+          { id: "after-2", details: { Name: "Manual match" }, status: "None" },
+          { id: "after-3", details: { Name: "Unmatched row" }, status: "Unresolved" },
+        ] },
+      { id: "after-b", kind: "aftersales", name: "Week B.xlsx", generation: "0", uploadOrder: "2",
+        headers: ["Location reference", "Name"], records: [
+          { id: "after-4", details: { "Location reference": "101", Name: "Merchant A" }, status: "Unresolved" },
+        ] },
+    ],
     mapSettings: {
       greenDays: 30,
       orangeDays: 60,
@@ -197,6 +211,15 @@ async function until(fn, label) {
       else if (name === "maya_workspace_status")
         data = { protocol: 3, revision: workspace.revision };
       else if (name === "maya_workspace_snapshot") data = workspace;
+      else if (name === "maya_workspace_apply") {
+        for (const action of args.p_actions) {
+          assert.equal(action.kind, "set_marker");
+          const file = workspace.datasets.find((ds) => ds.id === action.id);
+          file.records.find((row) => row.id === action.recordId).status = action.status;
+        }
+        workspace.revision = String(Number(workspace.revision) + 1);
+        data = { status: "saved", request_id: args.p_request_id, state: workspace };
+      }
       else if (receipts.has(args.p_request_id))
         data = { ...receipts.get(args.p_request_id), status: "already_saved" };
       else if (name === "maya_apply_changes") {
@@ -248,6 +271,11 @@ async function until(fn, label) {
         .evaluateAll((ns) => ns.map((n) => n.id)),
       ["tab-map", "tab-collection", "tab-aftersales", "tab-visits"],
     );
+    await p.locator("#search-input").fill("Nearby");
+    const savedNames = p.locator('[data-action="view-details"]');
+    assert.match(await savedNames.nth(0).innerText(), /Nearby merchant/i);
+    assert.match(await savedNames.nth(1).innerText(), /Shared address/i);
+    await p.locator("#search-input").fill("");
     await p.click("#tab-map");
     await p.waitForSelector(".leaflet-container");
     assert.equal(
@@ -334,7 +362,7 @@ async function until(fn, label) {
     let mapSettings = await openMapSettings();
     let grouping = mapSettings.getByRole("checkbox", { name: /Group map markers/ });
     assert.equal(await grouping.isChecked(), true);
-    assert.ok(await p.locator(".map-cluster").count() > 0);
+    await p.locator(".map-cluster").first().waitFor({ state: "attached" });
     await grouping.uncheck();
     assert.equal(await p.locator(".map-cluster").count(), 0);
     assert.equal(await p.locator(".leaflet-overlay-pane path").count(), 3);
@@ -350,7 +378,7 @@ async function until(fn, label) {
     assert.equal(await grouping.isChecked(), false);
     await grouping.check();
     await mapSettings.getByRole("button", { name: "Cancel", exact: true }).click();
-    assert.ok(await p.locator(".map-cluster").count() > 0);
+    await p.locator(".map-cluster").first().waitFor({ state: "attached" });
     assert.equal(writes.length, 0);
     console.log("PASS marker grouping defaults on, changes immediately, persists across reload and makes no cloud writes");
     for (let z = 0; z < 8; z++) {
@@ -521,7 +549,7 @@ async function until(fn, label) {
     await p.screenshot({ path: "/tmp/procast-phone-map.png" });
     await menu();
     await p
-      .getByRole("button", { name: "Stop my location", exact: true })
+      .getByRole("button", { name: "Turn off my location", exact: true })
       .click();
     assert.equal(await p.locator(".map-my-location-dot").count(), 0);
     assert.equal(await p.evaluate(() => gpsHarness.active()), 0);
@@ -537,12 +565,20 @@ async function until(fn, label) {
     await p.getByRole("button", { name: "My location", exact: true }).click();
     await p.evaluate(() => gpsHarness.emit(17.1234567, 120.7654321));
     await p.click("#tab-collection");
-    assert.equal(await p.evaluate(() => gpsHarness.active()), 0);
-    assert.equal(await p.locator(".map-my-location-dot").count(), 0);
+    assert.equal(await p.evaluate(() => gpsHarness.active()), 1);
+    await p.click("#tab-aftersales");
+    assert.equal(await p.evaluate(() => gpsHarness.active()), 1);
     await p.click("#tab-map");
     assert.equal(await p.evaluate(() => gpsHarness.calls), 3);
+    await p.waitForSelector(".map-my-location-dot");
     await menu();
-    await p.getByRole("button", { name: "My location", exact: true }).click();
+    await p.getByRole("button", { name: "Fit locations", exact: true }).click();
+    await p.getByRole("button", { name: "Recenter on my location" }).click();
+    await p.waitForFunction(() => {
+      const dot = document.querySelector(".map-my-location-dot").getBoundingClientRect();
+      const map = document.querySelector("#maya-map-canvas").getBoundingClientRect();
+      return Math.abs(dot.left + dot.width / 2 - (map.left + map.width / 2)) < 5;
+    });
     await p.evaluate(() => {
       gpsHarness.emit(17.1234567, 120.7654321);
       Object.defineProperty(document, "hidden", {
@@ -561,8 +597,6 @@ async function until(fn, label) {
       document.dispatchEvent(new Event("visibilitychange"));
     });
     assert.equal(await p.evaluate(() => gpsHarness.calls), 4);
-    await menu();
-    await p.getByRole("button", { name: "My location", exact: true }).click();
     await p.evaluate(() =>
       gpsHarness.emit(17.1234567, 120.7654321, 12, Date.now() - 60000),
     );
@@ -581,6 +615,11 @@ async function until(fn, label) {
       }),
     );
     assert.equal(await p.locator(".map-my-location-dot").count(), 0);
+    await menu();
+    await p.getByRole("button", { name: "Map settings", exact: true }).click();
+    await p.getByText("Group map markers (this browser)", { exact: true }).click();
+    assert.equal(await p.getByRole("checkbox", { name: /Group map markers/ }).isChecked(), false);
+    await p.getByRole("button", { name: "Cancel", exact: true }).click();
     await p.setViewportSize({ width: 1280, height: 844 });
     assert.equal(await p.locator(".app-header").isVisible(), true);
     assert.equal(await p.locator(".sync-panel").isVisible(), true);
@@ -605,10 +644,54 @@ async function until(fn, label) {
     );
     assert.equal(writes.length, 1);
     assert.deepEqual(errors, []);
+    await p.click("#tab-aftersales");
+    await p.getByRole("button", { name: "Matching rules", exact: true }).click();
+    await p.getByRole("combobox", { name: "Excel column", exact: true }).selectOption("Location reference");
+    await p.getByRole("button", { name: "Save matching rules", exact: true }).click();
+    await p.getByRole("button", { name: "Open record", exact: true }).first().click();
+    await p.getByRole("button", { name: "Link to Saved Record", exact: true }).click();
+    await p.getByRole("searchbox", { name: "Search Saved Records", exact: true }).fill("Nearby");
+    await p.getByRole("button", { name: "Nearby merchant", exact: true }).click();
+    await p.getByText("Linked to Nearby merchant", { exact: true }).waitFor();
+    await p.getByRole("button", { name: "Manage filters", exact: true }).click();
+    await p.getByRole("button", { name: "Add filter", exact: true }).click();
+    await p.getByRole("textbox", { name: "Filter name", exact: true }).fill("Names and notes");
+    const filterDialog = p.getByRole("dialog");
+    await filterDialog.getByRole("checkbox", { name: "Name", exact: true }).check();
+    await filterDialog.getByRole("checkbox", { name: "Notes", exact: true }).check();
+    await p.getByRole("button", { name: "Save filter", exact: true }).click();
+    await p.getByRole("button", { name: "Close", exact: true }).click();
+    await p.getByRole("combobox", { name: "Aftersales file", exact: true }).selectOption("after-b");
+    await p.getByTestId("dataset-status-filter").first().click();
+    await p.getByTestId("dataset-status-filter").first().click();
+    await p.getByRole("button", { name: "Open record", exact: true }).click();
+    assert.equal(await p.getByRole("combobox", { name: "Field filter", exact: true })
+      .locator("option:checked").innerText(), "Names and notes");
+    assert.match(await p.locator(".workspace-dialog").innerText(), /missing columns: Notes/);
+    await p.getByRole("button", { name: "Close", exact: true }).click();
+    await p.click("#tab-map");
+    const mapSource = p.getByRole("combobox", { name: "Map source", exact: true });
+    assert.equal(await mapSource.inputValue(), "");
+    await mapSource.selectOption("after-b");
+    await p.locator('.leaflet-overlay-pane path[fill="#dc2626"]').waitFor();
+    assert.equal(await p.locator(".leaflet-overlay-pane path").count(), 1);
+    await mapSource.selectOption("after-a");
+    await p.locator('.leaflet-overlay-pane path[fill="#16a34a"]').waitFor();
+    assert.equal(await p.locator('.leaflet-overlay-pane path[fill="#2563eb"]').count(), 1);
+    assert.match(await p.locator(".map-message").innerText(), /2 mapped · 1 need matching/);
+    await p.click("#tab-aftersales");
+    await p.getByRole("combobox", { name: "Aftersales file", exact: true }).selectOption("after-a");
+    await p.getByTestId("dataset-status-filter").first().click();
+    await p.locator('[data-record-id="after-2"]').getByRole("button", { name: "Unresolved", exact: true }).click();
+    await p.click("#tab-map");
+    await p.locator('.leaflet-overlay-pane path[fill="#dc2626"]').waitFor();
+    assert.equal(await p.locator('.leaflet-overlay-pane path[fill="#2563eb"]').count(), 0);
+    assert.equal(writes.length, 1);
+    console.log("PASS name-first search, configurable matching, manual links, cross-file filters, Aftersales map colors and no Saved Records writes");
     await context.close();
     // Also exercise the actual browser API with an emulated current location/permission.
     const real = await browser.newContext({
-      viewport: { width: 390, height: 844 },
+      viewport: { width: 1280, height: 844 },
       permissions: ["geolocation"],
       geolocation: {
         latitude: 17.1234567,
@@ -622,9 +705,9 @@ async function until(fn, label) {
     await realPage.waitForFunction(() => !document.getElementById("app").inert);
     await realPage.click("#tab-map");
     await realPage.waitForSelector(".leaflet-container");
-    await realPage
-      .getByRole("button", { name: "Map menu", exact: true })
-      .click();
+    await realPage.getByRole("button", { name: "Map settings", exact: true }).click();
+    await realPage.getByRole("checkbox", { name: /Group map markers/ }).uncheck();
+    await realPage.getByRole("button", { name: "Cancel", exact: true }).click();
     await realPage
       .getByRole("button", { name: "My location", exact: true })
       .click();
@@ -635,10 +718,12 @@ async function until(fn, label) {
     assert.match(await realPage.locator(".map-gps-status").innerText(), /25 m/);
     assert.equal(writes.length, 1);
     await realPage.click("#tab-collection");
-    assert.equal(await realPage.locator(".map-my-location-dot").count(), 0);
+    assert.equal(await realPage.locator(".map-my-location-dot").count(), 1);
+    await realPage.click("#tab-map");
+    await realPage.waitForSelector(".map-my-location-dot");
     await real.close();
     console.log(
-      "PASS permission-gated current GPS/accuracy, explicit stop, permission denial, leave/hidden cleanup, no history/writes, and unchanged desktop layout",
+      "PASS permission-gated current GPS/accuracy, explicit stop, permission denial, recenter and hidden pause/resume, no history/writes, and unchanged desktop layout",
     );
   } finally {
     await browser.close();
