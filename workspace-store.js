@@ -103,7 +103,10 @@ window.createWorkspaceStore = async function ({ client, deviceName }) {
   }
   async function sync() {
     clearTimeout(timer);
-    if (!ready || !durable || record.review || !navigator.onLine) {
+    const previouslyHeldSetup =
+      record.review === "Aftersales setup changed on another device. Preserve the pending batch, then review and reapply your changes." &&
+      record.outbox[0]?.p_actions?.[0]?.kind === "aftersales_setup";
+    if (!ready || !durable || (record.review && !previouslyHeldSetup) || !navigator.onLine) {
       emit();
       timer = setTimeout(() => api.sync(), 12000);
       return;
@@ -118,6 +121,11 @@ window.createWorkspaceStore = async function ({ client, deviceName }) {
       }
       configuration = false;
       offline = false;
+      if (previouslyHeldSetup) {
+        if (!meta.aftersalesSetupLastWriteWins) return;
+        record.review = "";
+        if (!(await persist())) return;
+      }
       if (meta.revision !== record.base.revision) {
         const state = await call("maya_workspace_snapshot");
         if (state?.protocol !== 3 || !Array.isArray(state.datasets))

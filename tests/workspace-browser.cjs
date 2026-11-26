@@ -447,6 +447,33 @@ const XLSX = require(
     await p2.getByRole("combobox", { name: "Map source", exact: true }).selectOption(mergedFile.id);
     await p2.getByText(/1 mapped · 1 need matching/).waitFor();
     console.log("PASS second device sees shared rules, manual links, filters and map pins; browser import preserves cloud conflicts");
+    const linkKey = Object.keys(shared.links)[0];
+    const previouslyHeld = DB.batch([{ kind: "aftersales_setup", changes: [
+      { section: "links", key: linkKey, expected: "older-record", missing: false, value: "m1" },
+    ] }]);
+    await p2.evaluate((batch) => new Promise((resolve, reject) => {
+      const open = indexedDB.open("maya-workspaces", 1);
+      open.onerror = () => reject(open.error);
+      open.onsuccess = () => {
+        const db = open.result;
+        const tx = db.transaction("cache", "readwrite");
+        const cache = tx.objectStore("cache");
+        const read = cache.get("current");
+        read.onsuccess = () => {
+          const current = read.result;
+          current.review = "Aftersales setup changed on another device. Preserve the pending batch, then review and reapply your changes.";
+          current.outbox.push(batch);
+          cache.put(current, "current");
+        };
+        tx.onerror = () => reject(tx.error);
+        tx.oncomplete = () => { db.close(); resolve(); };
+      };
+    }), previouslyHeld);
+    await p2.reload({ waitUntil: "domcontentloaded" });
+    await p2.waitForFunction(() => document.querySelector("[data-workspace-status]")?.textContent === "All workspace changes saved to cloud");
+    assert.equal((await DB.rpc("maya_workspace_snapshot")).aftersalesSetup.links[linkKey], "m1");
+    assert.equal(await DB.sql(`SELECT count(*) FROM public.maya_workspace_receipts WHERE request_id=${DB.quote(previouslyHeld.p_request_id)}::uuid;`), "1");
+    console.log("PASS a conflict held by the previous release retries with its original request ID");
     await c2.close();
     console.log(
       "PASS offline filter definition survives reload/reconnect and appears on another device with independent selection",
